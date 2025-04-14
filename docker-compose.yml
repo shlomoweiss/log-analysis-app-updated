@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongodb-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - log-analysis-network
+
+  # Elasticsearch service
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - log-analysis-network
+
+  # Log Analysis Application
+  log-analysis-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-analysis-app
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=mongodb://admin:password@mongodb:27017/log-analysis-app?authSource=admin
+      - ELASTICSEARCH_NODE=http://elasticsearch:9200
+      - JWT_SECRET=log-analysis-app-secret-key
+      - JWT_EXPIRATION=24h
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - elasticsearch
+    networks:
+      - log-analysis-network
+
+networks:
+  log-analysis-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  elasticsearch-data:

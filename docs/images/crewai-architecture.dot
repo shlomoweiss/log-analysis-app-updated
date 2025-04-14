@@ -1,0 +1,57 @@
+digraph G {
+  rankdir=LR;
+  node [shape=box, style=filled, fillcolor=lightblue];
+  
+  // User and Frontend
+  user [label="User", shape=circle, fillcolor=lightgreen];
+  frontend [label="Frontend\nReact.js"];
+  
+  // Backend Components
+  backend [label="Backend\nNode.js/Express"];
+  query_translation [label="Query Translation Service\n(Node.js)"];
+  llm_service [label="Original LLM Service\n(Node.js)"];
+  
+  // CrewAI Components
+  connector [label="CrewAI Connector\n(Python/FastAPI)", fillcolor=lightyellow];
+  crewai_service [label="CrewAI Service\n(Python/FastAPI)", fillcolor=lightyellow];
+  
+  // Agents
+  subgraph cluster_0 {
+    label = "CrewAI Agents";
+    style=filled;
+    fillcolor=lightyellow;
+    translator_agent [label="Query Translator Agent"];
+    analyst_agent [label="Log Analyst Agent"];
+    optimizer_agent [label="Query Optimizer Agent"];
+  }
+  
+  // External Services
+  elasticsearch [label="Elasticsearch", shape=cylinder, fillcolor=lightgrey];
+  
+  // Connections
+  user -> frontend [label="1. Natural Language Query"];
+  frontend -> backend [label="2. API Request"];
+  backend -> query_translation [label="3. Translate Query"];
+  
+  query_translation -> connector [label="4a. If CrewAI Enabled", style=dashed];
+  query_translation -> llm_service [label="4b. Fallback", style=dashed];
+  
+  connector -> crewai_service [label="5. Forward Request"];
+  crewai_service -> translator_agent [label="6a. Initial Translation"];
+  crewai_service -> analyst_agent [label="6b. Context Analysis"];
+  crewai_service -> optimizer_agent [label="6c. Query Optimization"];
+  
+  translator_agent -> analyst_agent [label="Task Context"];
+  analyst_agent -> optimizer_agent [label="Task Context"];
+  
+  optimizer_agent -> crewai_service [label="7. Optimized Query"];
+  crewai_service -> connector [label="8. Query Result"];
+  connector -> query_translation [label="9. Return Query"];
+  llm_service -> query_translation [label="Fallback Result"];
+  
+  query_translation -> backend [label="10. Elasticsearch DSL"];
+  backend -> elasticsearch [label="11. Execute Query"];
+  elasticsearch -> backend [label="12. Query Results"];
+  backend -> frontend [label="13. Display Results"];
+  frontend -> user [label="14. Visualization"];
+}

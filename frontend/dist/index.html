@@ -1,0 +1,327 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Log Analysis Application</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>.timeline-item {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .timeline-item.error:before {
+            background-color: #ef4444;
+        }
+        .timeline-item.warn:before {
+            background-color: #f59e0b;
+        }
+        .timeline-item.info:before {
+            background-color: #3b82f6;
+        }
+        .timeline-item.debug:before {
+            background-color: #9ca3af;
+        }</style><script defer="defer" src="/bundle.js"></script></head><body class="bg-gray-100 min-h-screen"><div id="app" class="flex h-screen"><div class="sidebar bg-gray-800 text-white w-64 flex-shrink-0 hidden md:block"><div class="p-4 border-b border-gray-700"><h1 class="text-xl font-bold">Log Analysis App</h1></div><nav class="p-2"><ul><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-blue-700" id="dashboardLink" onclick="resetAndShowDashboard()"><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</a></li><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="showQueryHistory()"><i class="fas fa-history mr-2"></i> Query History</a></li><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="showSavedQueries()"><i class="fas fa-save mr-2"></i> Saved Queries</a></li><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="showSettings()"><i class="fas fa-cog mr-2"></i> Settings</a></li><li class="mt-8"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="logout()"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a></li></ul></nav></div><div class="flex-1 flex flex-col overflow-hidden"><header class="bg-white shadow-sm"><div class="flex items-center justify-between p-4"><button class="md:hidden text-gray-600" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button><div class="flex items-center"><span class="text-gray-700 mr-2">Welcome, Admin</span><div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">A</div></div></div></header><main class="flex-1 overflow-y-auto p-4"><div id="dashboard" class="container mx-auto"><h2 class="text-2xl font-bold mb-6">Log Analysis Dashboard</h2><div id="queryInputContainer" class="bg-white p-6 rounded-lg shadow-md mb-6"><h3 class="text-lg font-semibold mb-4">Natural Language Query</h3><div class="flex"><input id="queryInput" class="flex-1 border rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Show me all error logs from the payment service in the last 24 hours"> <button onclick="executeQuery()" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Execute</button></div><div class="mt-4 text-sm text-gray-600"><p>Try queries like:</p><ul class="list-disc ml-5 mt-1"><li>"Show me all error logs from the payment service in the last 24 hours"</li><li>"Find warning messages in the authentication service from the past week"</li><li>"Display logs containing database connection issues in the last hour"</li></ul></div></div><div id="queryTranslation" class="bg-white p-6 rounded-lg shadow-md mb-6 hidden"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold">Query Translation</h3><button onclick="toggleQueryTranslation()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button></div><div class="bg-gray-100 p-4 rounded-lg"><pre id="translatedQuery" class="text-sm overflow-x-auto"></pre></div><div class="mt-4 flex justify-between"><span class="text-sm text-gray-600">Execution time: <span id="executionTime">0.24</span> seconds</span> <button onclick="saveQuery()" class="text-blue-600 hover:text-blue-800 text-sm"><i class="fas fa-save mr-1"></i> Save Query</button></div></div><div id="results" class="hidden"><div class="bg-white p-6 rounded-lg shadow-md mb-6"><h3 class="text-lg font-semibold mb-4">Timeline Visualization</h3><div id="timeline" class="border-l-2 border-gray-300 pl-4 py-2"></div></div><div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-lg font-semibold mb-4">Results</h3><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th></tr></thead><tbody id="resultsTable" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div></div><div id="queryHistory" class="container mx-auto hidden"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Query History</h2><button onclick="resetAndShowDashboard()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"><i class="fas fa-arrow-left mr-2"></i> Back to Dashboard</button></div><div class="bg-white p-6 rounded-lg shadow-md"><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Query</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Results</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th></tr></thead><tbody id="historyTable" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div><div id="savedQueries" class="container mx-auto hidden"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Saved Queries</h2><button onclick="resetAndShowDashboard()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"><i class="fas fa-arrow-left mr-2"></i> Back to Dashboard</button></div><div class="bg-white p-6 rounded-lg shadow-md"><div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Query</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th></tr></thead><tbody id="savedQueriesTable" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div><div id="settings" class="container mx-auto hidden"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Settings</h2><button onclick="resetAndShowDashboard()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"><i class="fas fa-arrow-left mr-2"></i> Back to Dashboard</button></div><div class="bg-white p-6 rounded-lg shadow-md"><h3 class="text-lg font-semibold mb-4">User Settings</h3><div class="mb-6"><h4 class="text-md font-medium mb-2">Change Password</h4><div class="space-y-3"><div><label for="currentPassword" class="block text-sm font-medium text-gray-700">Current Password</label> <input type="password" id="currentPassword" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></div><div><label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label> <input type="password" id="newPassword" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></div><div><label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm New Password</label> <input type="password" id="confirmPassword" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></div><button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Change Password</button></div></div><div class="mb-6"><h4 class="text-md font-medium mb-2">Appearance</h4><div class="flex items-center"><span class="mr-4 text-sm text-gray-700">Theme:</span> <label class="inline-flex items-center mr-4"><input type="radio" name="theme" value="light" class="form-radio" checked="checked"> <span class="ml-2">Light</span></label> <label class="inline-flex items-center"><input type="radio" name="theme" value="dark" class="form-radio"> <span class="ml-2">Dark</span></label></div></div><div><h4 class="text-md font-medium mb-2">Notifications</h4><div class="space-y-2"><label class="flex items-center"><input type="checkbox" class="form-checkbox" checked="checked"> <span class="ml-2 text-sm text-gray-700">Email notifications for saved query results</span></label> <label class="flex items-center"><input type="checkbox" class="form-checkbox" checked="checked"> <span class="ml-2 text-sm text-gray-700">Alert notifications for critical errors</span></label> <label class="flex items-center"><input type="checkbox" class="form-checkbox"> <span class="ml-2 text-sm text-gray-700">Weekly summary reports</span></label></div></div></div></div></main></div></div><div id="mobileSidebar" class="fixed inset-0 bg-gray-800 text-white w-64 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out"><div class="p-4 border-b border-gray-700 flex justify-between items-center"><h1 class="text-xl font-bold">Log Analysis App</h1><button onclick="toggleSidebar()" class="text-white"><i class="fas fa-times"></i></button></div><nav class="p-2"><ul><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-blue-700" onclick="resetAndShowDashboard(); toggleSidebar();"><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</a></li><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="showQueryHistory(); toggleSidebar();"><i class="fas fa-history mr-2"></i> Query History</a></li><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="showSavedQueries(); toggleSidebar();"><i class="fas fa-save mr-2"></i> Saved Queries</a></li><li class="mb-2"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="showSettings(); toggleSidebar();"><i class="fas fa-cog mr-2"></i> Settings</a></li><li class="mt-8"><a href="#" class="block p-2 rounded hover:bg-gray-700" onclick="logout(); toggleSidebar();"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a></li></ul></nav></div><script>// Sample data for demonstration
+        const sampleLogs = [
+            { timestamp: '2025-04-11T14:32:15.000Z', level: 'ERROR', service: 'payment', message: 'Failed to process transaction: Invalid card number' },
+            { timestamp: '2025-04-11T14:30:22.000Z', level: 'ERROR', service: 'payment', message: 'Database connection timeout during payment verification' },
+            { timestamp: '2025-04-11T13:45:10.000Z', level: 'ERROR', service: 'payment', message: 'Payment gateway returned error code: AUTH_FAILED' },
+            { timestamp: '2025-04-11T12:22:05.000Z', level: 'ERROR', service: 'payment', message: 'Transaction rollback failed: Inconsistent state' },
+            { timestamp: '2025-04-11T10:17:32.000Z', level: 'ERROR', service: 'payment', message: 'Critical: Payment processor connection lost' },
+            { timestamp: '2025-04-11T09:05:18.000Z', level: 'ERROR', service: 'payment', message: 'Failed to validate payment method: Timeout' },
+            { timestamp: '2025-04-10T22:47:03.000Z', level: 'ERROR', service: 'payment', message: 'Payment webhook delivery failed after 3 retries' }
+        ];
+
+        const sampleHistory = [
+            { timestamp: '2025-04-11T15:30:00.000Z', query: 'Show me all error logs from the payment service in the last 24 hours', results: 7 },
+            { timestamp: '2025-04-11T14:15:00.000Z', query: 'Find warning messages in the authentication service from the past week', results: 12 },
+            { timestamp: '2025-04-11T10:45:00.000Z', query: 'Display logs containing database connection issues in the last hour', results: 3 }
+        ];
+
+        const sampleSavedQueries = [
+            { name: 'Payment Errors', query: 'Show me all error logs from the payment service in the last 24 hours', created: '2025-04-10T09:00:00.000Z' },
+            { name: 'Auth Warnings', query: 'Find warning messages in the authentication service from the past week', created: '2025-04-09T14:30:00.000Z' },
+            { name: 'DB Connection Issues', query: 'Display logs containing database connection issues', created: '2025-04-08T11:15:00.000Z' }
+        ];
+
+        // Function to toggle mobile sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('mobileSidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        }
+
+        // Function to reset dashboard state and show dashboard
+        function resetAndShowDashboard() {
+            // Reset query results
+            document.getElementById('queryTranslation').classList.add('hidden');
+            document.getElementById('results').classList.add('hidden');
+            
+            // Make sure query input is visible
+            document.getElementById('queryInputContainer').classList.remove('hidden');
+            
+            // Show dashboard
+            showDashboard();
+        }
+
+        // Function to show dashboard
+        function showDashboard() {
+            // Hide all sections
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('queryHistory').classList.add('hidden');
+            document.getElementById('savedQueries').classList.add('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            
+            // Update active link
+            updateActiveLink('dashboardLink');
+        }
+
+        // Function to show query history
+        function showQueryHistory() {
+            // Hide all sections
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('queryHistory').classList.remove('hidden');
+            document.getElementById('savedQueries').classList.add('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            
+            // Populate history table if empty
+            const historyTable = document.getElementById('historyTable');
+            if (historyTable.innerHTML === '') {
+                sampleHistory.forEach(item => {
+                    const row = document.createElement('tr');
+                    const date = new Date(item.timestamp);
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${date.toLocaleString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${item.query}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${item.results} matches
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="executeHistoryQuery('${item.query}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-play mr-1"></i> Run
+                            </button>
+                            <button class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash mr-1"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    historyTable.appendChild(row);
+                });
+            }
+        }
+
+        // Function to show saved queries
+        function showSavedQueries() {
+            // Hide all sections
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('queryHistory').classList.add('hidden');
+            document.getElementById('savedQueries').classList.remove('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            
+            // Populate saved queries table if empty
+            const savedQueriesTable = document.getElementById('savedQueriesTable');
+            if (savedQueriesTable.innerHTML === '') {
+                sampleSavedQueries.forEach(item => {
+                    const row = document.createElement('tr');
+                    const date = new Date(item.created);
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ${item.name}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${item.query}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${date.toLocaleDateString()}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="executeHistoryQuery('${item.query}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-play mr-1"></i> Run
+                            </button>
+                            <button class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash mr-1"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    savedQueriesTable.appendChild(row);
+                });
+            }
+        }
+
+        // Function to show settings
+        function showSettings() {
+            // Hide all sections
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('queryHistory').classList.add('hidden');
+            document.getElementById('savedQueries').classList.add('hidden');
+            document.getElementById('settings').classList.remove('hidden');
+        }
+
+        // Function to execute a query
+        function executeQuery() {
+            const queryInput = document.getElementById('queryInput');
+            const query = queryInput.value.trim();
+            
+            if (query === '') {
+                alert('Please enter a query');
+                return;
+            }
+            
+            // Show query translation
+            document.getElementById('queryTranslation').classList.remove('hidden');
+            document.getElementById('translatedQuery').textContent = JSON.stringify({
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "range": {
+                                    "@timestamp": {
+                                        "gte": "now-24h",
+                                        "lte": "now"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "level": "ERROR"
+                                }
+                            },
+                            {
+                                "match": {
+                                    "service": "payment"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }, null, 2);
+            
+            // Show results
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Populate timeline
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+            sampleLogs.forEach(log => {
+                const date = new Date(log.timestamp);
+                const item = document.createElement('div');
+                item.className = `timeline-item ${log.level.toLowerCase()}`;
+                item.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="font-medium">${date.toLocaleTimeString()}</div>
+                        <div class="ml-2 px-2 py-0.5 rounded text-xs ${log.level === 'ERROR' ? 'bg-red-100 text-red-800' : 
+                                                                      log.level === 'WARN' ? 'bg-yellow-100 text-yellow-800' : 
+                                                                      log.level === 'INFO' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                            ${log.level}
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">${log.service}</div>
+                    <div class="text-sm">${log.message}</div>
+                `;
+                timeline.appendChild(item);
+            });
+            
+            // Populate results table
+            const resultsTable = document.getElementById('resultsTable');
+            resultsTable.innerHTML = '';
+            sampleLogs.forEach(log => {
+                const row = document.createElement('tr');
+                const date = new Date(log.timestamp);
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${date.toLocaleString()}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            log.level === 'ERROR' ? 'bg-red-100 text-red-800' : 
+                            log.level === 'WARN' ? 'bg-yellow-100 text-yellow-800' : 
+                            log.level === 'INFO' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                        }">
+                            ${log.level}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${log.service}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${log.message}
+                    </td>
+                `;
+                resultsTable.appendChild(row);
+            });
+            
+            // Add to history
+            const now = new Date();
+            sampleHistory.unshift({
+                timestamp: now.toISOString(),
+                query: query,
+                results: sampleLogs.length
+            });
+        }
+
+        // Function to execute a query from history
+        function executeHistoryQuery(query) {
+            // Navigate back to dashboard
+            resetAndShowDashboard();
+            
+            // Set the query input
+            document.getElementById('queryInput').value = query;
+            
+            // Execute the query
+            executeQuery();
+        }
+
+        // Function to toggle query translation visibility
+        function toggleQueryTranslation() {
+            document.getElementById('queryTranslation').classList.toggle('hidden');
+        }
+
+        // Function to save the current query
+        function saveQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            const name = prompt('Enter a name for this query:', 'My Saved Query');
+            
+            if (name) {
+                const now = new Date();
+                sampleSavedQueries.unshift({
+                    name: name,
+                    query: query,
+                    created: now.toISOString()
+                });
+                
+                alert('Query saved successfully!');
+            }
+        }
+
+        // Function to logout
+        function logout() {
+            alert('Logout functionality would be implemented here.');
+        }
+
+        // Function to update active link in sidebar
+        function updateActiveLink(activeId) {
+            // Remove active class from all links
+            const links = document.querySelectorAll('.sidebar nav a');
+            links.forEach(link => {
+                link.classList.remove('bg-blue-600');
+                link.classList.add('hover:bg-gray-700');
+            });
+            
+            // Add active class to current link
+            const activeLink = document.getElementById(activeId);
+            if (activeLink) {
+                activeLink.classList.add('bg-blue-600');
+                activeLink.classList.remove('hover:bg-gray-700');
+            }
+        }
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set dashboard as active by default
+            updateActiveLink('dashboardLink');
+        });</script></body></html>
