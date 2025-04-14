@@ -52,5 +52,6 @@ module.exports = {
     historyApiFallback: true,
     port: 3000,
     hot: true
-  }
+  },
+  devtool: 'source-map' // Enable source maps for better debugging
 };
