@@ -1,7 +1,0 @@
-INFO:     Started server process [29576]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:50700 - "GET /health HTTP/1.1" 200 OK
-in translate_query
-INFO:     127.0.0.1:50702 - "POST /translate-query HTTP/1.1" 500 Internal Server Error
