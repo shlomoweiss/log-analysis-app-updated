@@ -31,7 +31,7 @@ llm = ChatOpenAI(
     model="google/gemini-2.5-pro-exp-03-25:free",
     temperature=0,
     base_url="https://openrouter.ai/api/v1",
-    api_key="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"
+    api_key=""
 )
 """
 class QueryRequest(BaseModel):
