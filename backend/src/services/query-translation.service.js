@@ -19,19 +19,20 @@ class QueryTranslationService {
    * @param {Object} timeRange - The time range to search within
    * @returns {Promise<Object>} - The translated Elasticsearch query
    */
-  async translateQuery(naturalLanguageQuery, userId, indexPattern = 'logs-*', timeRange = null) {
+  async translateQuery(naturalLanguageQuery,indexPattern = 'logs-*', timeRange = null) {
+    console.log("in translateQuery befor autid ant the query is " +JSON.stringify(naturalLanguageQuery) )
     try {
       // Log the translation request
-      await auditService.logAction(userId, 'QUERY_TRANSLATION', {
+      await auditService.logAction("1", 'QUERY_TRANSLATION', {
         query: naturalLanguageQuery,
         indexPattern,
         timeRange
       });
-
+      console.log("in translateQuery after autid")
       let result;
       
       // Use CrewAI if enabled, otherwise fall back to the original LLM service
-      if (this.useCrewAI) {
+      
         try {
           // Check if CrewAI service is healthy
           const healthStatus = await crewAIService.checkHealth();
@@ -39,18 +40,10 @@ class QueryTranslationService {
           if (healthStatus.status === 'healthy') {
             console.log('Using CrewAI for query translation');
             
-            // Additional context that might help with translation
-            const additionalContext = {
-              user_id: userId,
-              common_services: ['payment', 'auth', 'user', 'order'],
-              common_log_levels: ['ERROR', 'WARN', 'INFO', 'DEBUG']
-            };
+           
             
             result = await crewAIService.translateQuery(
               naturalLanguageQuery,
-              indexPattern,
-              timeRange,
-              additionalContext
             );
             
             // Add source information to the result
@@ -63,20 +56,9 @@ class QueryTranslationService {
         } catch (crewAIError) {
           console.error('Error using CrewAI service, falling back to original LLM service:', crewAIError);
         }
-      }
       
-      // Fall back to original LLM service
-      console.log('Using original LLM service for query translation');
-      result = await llmService.translateNaturalLanguageToElasticsearchDSL(
-        naturalLanguageQuery,
-        indexPattern,
-        timeRange
-      );
       
-      // Add source information to the result
-      result.source = 'original_llm';
       
-      return result;
     } catch (error) {
       console.error('Error translating query:', error);
       throw new Error(`Failed to translate query: ${error.message}`);

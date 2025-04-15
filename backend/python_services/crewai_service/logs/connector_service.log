@@ -1,4 +1,8 @@
-INFO:     Started server process [22220]
+INFO:     Started server process [317628]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50696 - "GET /health HTTP/1.1" 200 OK
+C:\log-analysis-app-updated\backend\python_services\crewai_service\connector.py:39: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+  json=query_request.dict(),
+INFO:     127.0.0.1:50696 - "POST /proxy-query HTTP/1.1" 500 Internal Server Error

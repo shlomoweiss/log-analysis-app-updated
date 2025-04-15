@@ -7,11 +7,11 @@ class AuditService {
     try {
       // Create new audit log entry
       const auditLog = new AuditLog({
-        user: user._id,
+        //user: user._id,
         action,
         details: this.maskSensitiveData(details),
         ip: req.ip,
-        userAgent: req.get('user-agent')
+        //userAgent: req.get('user-agent')
       });
       
       // Save audit log

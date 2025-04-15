@@ -1,19 +1,25 @@
 const Query = require('../models/query.model');
 const SavedQuery = require('../models/savedQuery.model');
 const elasticsearchService = require('../services/elasticsearch.service');
+const QueryTranslationService = require('../services/query-translation.service');
 const llmService = require('../services/llm.service');
 
 // Execute a natural language query
 exports.executeQuery = async (req, res) => {
+  console.log("in executeQuery\n");
   try {
     const { query } = req.body;
-    
+    console.log("in executeQuery body "+ JSON.stringify(query));
     if (!query) {
+      console.log("quey is empty")
       return res.status(400).json({ message: 'Query text is required' });
     }
     
-    // Translate natural language query to Elasticsearch DSL using LLM service
-    const { dslQuery, dslQueryString } = await llmService.translateQuery(query, req.user._id);
+    // Translate natural language query to Elasticsearch DSL using QueryTranslationService
+    const translationResult = await QueryTranslationService.translateQuery(query);
+    const { dslQuery, dslQueryString, ...rest } = translationResult;
+
+    console.log("the elastecsearch query: " +JSON.stringify(dslQuery));
     
     // Execute the query
     const { results, executionTime, total } = await elasticsearchService.executeQuery(dslQuery);
@@ -22,7 +28,7 @@ exports.executeQuery = async (req, res) => {
     const queryRecord = new Query({
       user: req.user._id,
       text: query,
-      translatedQuery: dslQueryString,
+      translatedQuery: dslQueryString || JSON.stringify(dslQuery),
       resultCount: total,
       executionTime
     });
@@ -31,10 +37,11 @@ exports.executeQuery = async (req, res) => {
     
     res.json({
       query,
-      translatedQuery: dslQueryString,
+      translatedQuery: dslQueryString || JSON.stringify(dslQuery),
       results,
       executionTime,
-      total
+      total,
+      translationSource: rest.source // indicate if CrewAI or original LLM was used
     });
   } catch (error) {
     res.status(500).json({ message: 'Error executing query', error: error.message });

@@ -6,7 +6,7 @@ const { validateQuery, validateSavedQuery } = require('../middleware/validation.
 const { queryLimiter } = require('../middleware/rateLimit.middleware');
 
 // Apply auth middleware to all routes
-router.use(verifyToken);
+//router.use(verifyToken);
 
 // Apply query rate limiting to execute endpoint
 router.post('/execute', queryLimiter, validateQuery, queryController.executeQuery);
