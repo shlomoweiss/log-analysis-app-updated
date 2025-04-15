@@ -36,10 +36,8 @@ const QueryInput = () => {
           <div>
             <button
               type="submit"
-              disabled={loading || !currentQuery.trim()}
-              className={`px-4 py-2 rounded-md text-white font-medium ${
-                loading || !currentQuery.trim() ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+             
+              className='ml-2 px-4 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium'
             >
               {loading ? 'Executing...' : 'Execute Query'}
             </button>

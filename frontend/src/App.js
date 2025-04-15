@@ -16,32 +16,24 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={
-        <ProtectedRoute isAuthenticated={isAuthenticated}>
-          <Layout>
-            <Dashboard />
-          </Layout>
-        </ProtectedRoute>
+        <Layout>
+          <Dashboard />
+        </Layout>
       } />
       <Route path="/history" element={
-        <ProtectedRoute isAuthenticated={isAuthenticated}>
-          <Layout>
-            <QueryHistory />
-          </Layout>
-        </ProtectedRoute>
+        <Layout>
+          <QueryHistory />
+        </Layout>  
       } />
       <Route path="/saved" element={
-        <ProtectedRoute isAuthenticated={isAuthenticated}>
-          <Layout>
+        <Layout>
             <SavedQueries />
-          </Layout>
-        </ProtectedRoute>
+        </Layout>    
       } />
       <Route path="/settings" element={
-        <ProtectedRoute isAuthenticated={isAuthenticated}>
-          <Layout>
-            <Settings />
-          </Layout>
-        </ProtectedRoute>
+        <Layout>
+          <Settings />
+        </Layout>  
       } />
     </Routes>
   );
