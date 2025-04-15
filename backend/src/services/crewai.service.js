@@ -28,8 +28,6 @@ class CrewAIService {
 
       return {
         elasticsearchQuery: response.data.elasticsearch_query,
-        explanation: response.data.explanation,
-        confidenceScore: response.data.confidence_score
       };
     } catch (error) {
       console.error('Error translating query with CrewAI:', error);

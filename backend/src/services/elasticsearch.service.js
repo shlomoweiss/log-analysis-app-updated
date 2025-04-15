@@ -8,120 +8,14 @@ const client = new Client({
     username: config.elasticsearch.auth.username,
     password: config.elasticsearch.auth.password
   },
-  ssl: {
+  maxRetries: 5,
+  requestTimeout: 60000,
+  tls: {
     rejectUnauthorized: false // Only for development, should be true in production
   }
 });
 
-// Service for translating natural language to Elasticsearch DSL using LLM
-exports.translateQuery = async (naturalLanguageQuery) => {
-  try {
-    // In a real implementation, this would call an LLM API
-    // For now, we'll implement a more sophisticated mock version
-    
-    // Parse time range
-    let timeRange = '24h';
-    if (naturalLanguageQuery.match(/last\s+hour|past\s+hour|recent\s+hour/i)) {
-      timeRange = '1h';
-    } else if (naturalLanguageQuery.match(/last\s+6\s+hours|past\s+6\s+hours/i)) {
-      timeRange = '6h';
-    } else if (naturalLanguageQuery.match(/last\s+12\s+hours|past\s+12\s+hours/i)) {
-      timeRange = '12h';
-    } else if (naturalLanguageQuery.match(/last\s+day|past\s+day|last\s+24\s+hours|past\s+24\s+hours/i)) {
-      timeRange = '24h';
-    } else if (naturalLanguageQuery.match(/last\s+week|past\s+week/i)) {
-      timeRange = '7d';
-    } else if (naturalLanguageQuery.match(/last\s+month|past\s+month/i)) {
-      timeRange = '30d';
-    }
-    
-    // Parse log level
-    let logLevel = null;
-    if (naturalLanguageQuery.match(/\berror\b|\berrors\b/i)) {
-      logLevel = 'ERROR';
-    } else if (naturalLanguageQuery.match(/\bwarn\b|\bwarning\b|\bwarnings\b/i)) {
-      logLevel = 'WARN';
-    } else if (naturalLanguageQuery.match(/\binfo\b|\binformation\b/i)) {
-      logLevel = 'INFO';
-    } else if (naturalLanguageQuery.match(/\bdebug\b/i)) {
-      logLevel = 'DEBUG';
-    }
-    
-    // Parse service name
-    let service = null;
-    if (naturalLanguageQuery.match(/payment(\s+service)?/i)) {
-      service = 'payment';
-    } else if (naturalLanguageQuery.match(/user(\s+service)?/i)) {
-      service = 'user';
-    } else if (naturalLanguageQuery.match(/auth(\s+service)?|authentication(\s+service)?/i)) {
-      service = 'auth';
-    } else if (naturalLanguageQuery.match(/order(\s+service)?/i)) {
-      service = 'order';
-    }
-    
-    // Parse for specific message content
-    let messageContent = null;
-    const messageMatch = naturalLanguageQuery.match(/containing\s+"([^"]+)"|with\s+"([^"]+)"|message\s+"([^"]+)"/i);
-    if (messageMatch) {
-      messageContent = messageMatch[1] || messageMatch[2] || messageMatch[3];
-    }
-    
-    // Build Elasticsearch DSL query
-    const dslQuery = {
-      bool: {
-        must: []
-      }
-    };
-    
-    // Add time range
-    dslQuery.bool.must.push({
-      range: {
-        '@timestamp': {
-          gte: `now-${timeRange}`,
-          lte: 'now'
-        }
-      }
-    });
-    
-    // Add log level if specified
-    if (logLevel) {
-      dslQuery.bool.must.push({
-        match: {
-          level: logLevel
-        }
-      });
-    }
-    
-    // Add service if specified
-    if (service) {
-      dslQuery.bool.must.push({
-        match: {
-          service: service
-        }
-      });
-    }
-    
-    // Add message content if specified
-    if (messageContent) {
-      dslQuery.bool.must.push({
-        match_phrase: {
-          message: messageContent
-        }
-      });
-    }
-    
-    // Convert to string representation for display
-    const dslQueryString = JSON.stringify(dslQuery, null, 2);
-    
-    return {
-      dslQuery,
-      dslQueryString
-    };
-  } catch (error) {
-    console.error('Error translating query:', error);
-    throw new Error('Failed to translate natural language query');
-  }
-};
+
 
 // Execute Elasticsearch query
 exports.executeQuery = async (dslQuery, index = 'logs-*') => {
@@ -139,14 +33,10 @@ exports.executeQuery = async (dslQuery, index = 'logs-*') => {
     
     const response = await client.search({
       index,
-      body: {
-        query: dslQuery,
-        size: 100,
-        sort: [
-          { '@timestamp': { order: 'desc' } }
-        ]
-      }
+      body: dslQuery
     });
+
+    console.log("ES total result"+response.hits.total.value)
     
     const endTime = Date.now();
     const executionTime = (endTime - startTime) / 1000;

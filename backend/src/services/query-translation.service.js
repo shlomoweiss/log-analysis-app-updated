@@ -23,11 +23,11 @@ class QueryTranslationService {
     console.log("in translateQuery befor autid ant the query is " +JSON.stringify(naturalLanguageQuery) )
     try {
       // Log the translation request
-      await auditService.logAction("1", 'QUERY_TRANSLATION', {
+      /*await auditService.logAction("1", 'QUERY_TRANSLATION', {
         query: naturalLanguageQuery,
         indexPattern,
         timeRange
-      });
+      });*/
       console.log("in translateQuery after autid")
       let result;
       
@@ -48,6 +48,9 @@ class QueryTranslationService {
             
             // Add source information to the result
             result.source = 'crewai';
+
+            console.log("*****************************************************")
+            console.log(JSON.stringify(result))
             
             return result;
           } else {

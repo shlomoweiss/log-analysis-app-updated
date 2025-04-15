@@ -17,7 +17,7 @@ exports.executeQuery = async (req, res) => {
     
     // Translate natural language query to Elasticsearch DSL using QueryTranslationService
     const translationResult = await QueryTranslationService.translateQuery(query);
-    const { dslQuery, dslQueryString, ...rest } = translationResult;
+    const dslQuery = translationResult["elasticsearchQuery"];
 
     console.log("the elastecsearch query: " +JSON.stringify(dslQuery));
     
@@ -25,15 +25,15 @@ exports.executeQuery = async (req, res) => {
     const { results, executionTime, total } = await elasticsearchService.executeQuery(dslQuery);
     
     // Save query to history
-    const queryRecord = new Query({
+    /*const queryRecord = new Query({
       user: req.user._id,
       text: query,
       translatedQuery: dslQueryString || JSON.stringify(dslQuery),
       resultCount: total,
-      executionTime
+      executionTime 
     });
     
-    await queryRecord.save();
+    await queryRecord.save(); */
     
     res.json({
       query,

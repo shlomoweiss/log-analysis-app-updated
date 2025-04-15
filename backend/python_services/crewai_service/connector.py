@@ -23,8 +23,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     elasticsearch_query: Dict[str, Any]
-    explanation: str
-    confidence_score: float
+   
 
 @app.post("/proxy-query", response_model=QueryResponse)
 async def proxy_query(query_request: QueryRequest):
@@ -36,12 +35,11 @@ async def proxy_query(query_request: QueryRequest):
         # Forward the request to the CrewAI service
         response = requests.post(
             f"{CREWAI_SERVICE_URL}/translate-query",
-            json=query_request.dict(),
-            headers={"Content-Type": "application/json"}
+            json=query_request.model_dump(),
+            headers={"Content-Type": "application/json"},
+            timeout=9000
         )
         
-        # Check if the request was successful
-        response.raise_for_status()
         
         # Return the response from the CrewAI service
         return response.json()
