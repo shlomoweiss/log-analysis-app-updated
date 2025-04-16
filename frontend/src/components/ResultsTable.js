@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 
 const ResultsTable = () => {
   const { results, loading } = useSelector(state => state.query);
-
+  
   if (loading) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
@@ -13,7 +13,7 @@ const ResultsTable = () => {
       </div>
     );
   }
-
+  
   if (!results || results.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
@@ -23,9 +23,27 @@ const ResultsTable = () => {
       </div>
     );
   }
-
+  
   // Get all unique keys from all result objects
   const allKeys = [...new Set(results.flatMap(result => Object.keys(result)))];
+    
+  // Function to safely render cell content
+  const renderCellContent = (value) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    
+    if (typeof value === 'object') {
+      // For objects, convert to JSON string or handle specially
+      try {
+        return JSON.stringify(value);
+      } catch (e) {
+        return '[Object]';
+      }
+    }
+    
+    return String(value);
+  };
   
   return (
     <div className="bg-white shadow rounded-lg p-6 overflow-x-auto">
@@ -34,9 +52,9 @@ const ResultsTable = () => {
         <thead className="bg-gray-50">
           <tr>
             {allKeys.map(key => (
-              <th 
+              <th
                 key={key}
-                scope="col" 
+                scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
                 {key}
@@ -49,7 +67,7 @@ const ResultsTable = () => {
             <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
               {allKeys.map(key => (
                 <td key={`${index}-${key}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {result[key] || ''}
+                  {renderCellContent(result[key])}
                 </td>
               ))}
             </tr>

@@ -61,16 +61,21 @@ exports.executeQuery = async (req, res) => {
     });
     
     await queryRecord.save(); */
-    
-    res.json({
+    const qresult={
       query,
-      translatedQuery: dslQueryString || JSON.stringify(dslQuery),
+      translatedQuery: JSON.stringify(dslQuery),
       results,
       executionTime,
       total,
-      translationSource: rest.source // indicate if CrewAI or original LLM was used
-    });
+      translationSource: res.source // indicate if CrewAI or original LLM was used
+
+    }
+
+    console.log(JSON.stringify(qresult))
+    
+    res.json(qresult);
   } catch (error) {
+    console.log ("got error !!! =" + error.message)
     res.status(500).json({ message: 'Error executing query', error: error.message });
   }
 };

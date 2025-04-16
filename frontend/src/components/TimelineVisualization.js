@@ -15,7 +15,7 @@ const TimelineVisualization = () => {
 
   // Group logs by time intervals (hourly)
   const groupedByTime = results.reduce((acc, log) => {
-    const timestamp = new Date(log.timestamp);
+    const timestamp = new Date(log["@timestamp"]);
     // Round to the nearest hour for grouping
     const hourKey = new Date(
       timestamp.getFullYear(),
