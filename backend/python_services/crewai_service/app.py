@@ -44,11 +44,31 @@ class QueryResponse(BaseModel):
     elasticsearch_query: Dict[str, Any]
    
 
+# --- Utility function to summarize indicesFields for prompt context ---
+def summarize_indices_fields(indices_fields):
+    """Format the indicesFields structure as a readable summary for LLM context."""
+    if not indices_fields:
+        return "No index fields information provided."
+    if isinstance(indices_fields, dict):
+        summary_lines = []
+        for field, meta in indices_fields.items():
+            type_info = meta.get("type") if isinstance(meta, dict) else str(meta)
+            summary_lines.append(f"- {field}: {type_info}")
+        return "\n".join(summary_lines)
+    elif isinstance(indices_fields, list):
+        return ", ".join(str(f) for f in indices_fields)
+    else:
+        return str(indices_fields)
+
 #--- Prompts ---
 ANALYSIS_PROMPT = PromptTemplate.from_template(
     """
 Analyze the following natural language query about logs:
 "{query}"
+
+Index Fields available for this query (names and types):
+{indices_fields_context}
+
 Identify:
 1. The time range (if specified)
 2. Log levels of interest (ERROR, WARN, INFO, DEBUG)
@@ -56,27 +76,31 @@ Identify:
 4. Specific error types or conditions
 5. Any aggregations or analytics requested
 
+Restrict your reasoning to use only fields present in the above index fields if possible.
 Respond in structured bullet points as a numbered list.
 """
 )
 
 TRANSLATION_PROMPT = PromptTemplate.from_template(
     """
-Based on the following analysis:\n{analysis}
+Based on the following analysis:
+{analysis}
 
-Translate the following natural language query:
+Natural language query:
 "{query}"
 
-Into an Elasticsearch DSL query that will search for logs in the index pattern: {index_pattern}
+Index Fields available for query generation (names and types):
+{indices_fields_context}
 
-Consider:
-- Time range filters
-- Log level filters
-- Service/component filters
-- Message content filters
-- Any aggregations needed
+Translate the above query into an Elasticsearch DSL query that will search for logs in the index pattern: {index_pattern}
 
-The query should be in valid JSON format that can be directly used with Elasticsearch. Respond only with the JSON.
+Instructions:
+- Use ONLY the fields present in the above index fields listing.
+- Add time range, log level, service/component, and message content filters as needed.
+- Use aggregations only on listed fields.
+
+The query should be in valid JSON format that can be directly used with Elasticsearch.
+Respond only with the JSON.
 """
 )
 
@@ -85,11 +109,15 @@ OPTIMIZATION_PROMPT = PromptTemplate.from_template(
 Given this Elasticsearch query in JSON format:
 {es_query}
 
+Index Fields available for this query (names and types):
+{indices_fields_context}
+
 Review and optimize the query for:
 1. Performance (avoid wildcard prefixes, use appropriate field types)
-2. Accuracy (ensure it matches the user's intent)
+2. Accuracy (ensure it matches the user's intent and available fields)
 3. Completeness (include all relevant filters)
-4. Best practices (follow Elasticsearch query best practices)
+4. Best practices (follow Elasticsearch query best practices, respect field list)
+5. set size filet to 10000
 
 Respond in the following format:
 
@@ -143,11 +171,27 @@ def extract_json_from_string(input_string):
 @app.post("/translate-query", response_model=QueryResponse)
 async def translate_query(query_request: QueryRequest):
         print ("in translate_query")
+        
+        # Extract indices fields from additional context if available
+        indices_fields = None
+        if query_request.additional_context and "indicesFields" in query_request.additional_context:
+            indices_fields = query_request.additional_context["indicesFields"]
+            print(f"[translate_query] indicesFields received: {type(indices_fields)} - {list(indices_fields.keys()) if isinstance(indices_fields, dict) else str(indices_fields)}")
+        
+        # Format indices fields for prompt context
+        indices_fields_context = summarize_indices_fields(indices_fields)
+
+        print("******************************************************************")
+        print ("indices_fields_context = " + indices_fields_context)
+        print("******************************************************************")
     
         # 1. Analyze user's intent & details using prompt | llm pattern
         analysis_chain = ANALYSIS_PROMPT | llm
         analysis_result = await analysis_chain.ainvoke(
-            {"query": query_request.natural_language_query}
+            {
+                "query": query_request.natural_language_query,
+                "indices_fields_context": indices_fields_context
+            }
         )
         
         if isinstance(analysis_result, dict):
@@ -164,7 +208,8 @@ async def translate_query(query_request: QueryRequest):
             {
                 "analysis": analysis_result,
                 "query": query_request.natural_language_query,
-                "index_pattern": query_request.index_pattern
+                "index_pattern": query_request.index_pattern,
+                "indices_fields_context": indices_fields_context
             }
         )
         
@@ -178,7 +223,10 @@ async def translate_query(query_request: QueryRequest):
         print("************************************************************************")
         # 3. Optimize Elasticsearch query
         optimization_chain = OPTIMIZATION_PROMPT | llm
-        opt_result = await optimization_chain.ainvoke({"es_query": translation_result})
+        opt_result = await optimization_chain.ainvoke({
+            "es_query": translation_result,
+            "indices_fields_context": indices_fields_context
+        })
         print (opt_result)
         
         if isinstance(opt_result, dict):

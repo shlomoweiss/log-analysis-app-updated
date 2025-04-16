@@ -14,11 +14,16 @@ class CrewAIService {
    * @param {string} naturalLanguageQuery - The natural language query to translate
    * @param {string} indexPattern - The Elasticsearch index pattern to search
    * @param {Object} timeRange - The time range to search within
-   * @param {Object} additionalContext - Additional context for the query
+   * @param {Object} indicesFields - The indices fields to send as additional context
    * @returns {Promise<Object>} - The translated Elasticsearch query and metadata
    */
-  async translateQuery(naturalLanguageQuery, indexPattern = 'logs-*', timeRange = null, additionalContext = null) {
+  async translateQuery(naturalLanguageQuery, indexPattern = 'logs-*', timeRange = null, indicesFields = null) {
     try {
+      // Compose the additional_context with indicesFields
+      const additionalContext = {
+        ...(indicesFields ? { indicesFields } : {})
+      };
+
       const response = await axios.post(`${this.crewAIConnectorUrl}/proxy-query`, {
         natural_language_query: naturalLanguageQuery,
         index_pattern: indexPattern,

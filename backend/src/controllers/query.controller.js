@@ -4,6 +4,29 @@ const elasticsearchService = require('../services/elasticsearch.service');
 const QueryTranslationService = require('../services/query-translation.service');
 const llmService = require('../services/llm.service');
 
+// Cache for indices fields to avoid repeated fetches
+let indicesFieldsCache = null;
+
+/**
+ * Get cached indices fields or fetch them if not cached
+ * @returns {Promise<Object>} The indices fields
+ */
+async function getCachedIndicesFields() {
+  if (!indicesFieldsCache) {
+    indicesFieldsCache = elasticsearchService.getAllIndicesFields();
+  }
+  return indicesFieldsCache;
+}
+
+/**
+ * Refresh the indices fields cache
+ * @returns {Promise<Object>} The refreshed indices fields
+ */
+async function refreshIndicesFieldsCache() {
+  indicesFieldsCache = elasticsearchService.getAllIndicesFields();
+  return indicesFieldsCache;
+}
+
 // Execute a natural language query
 exports.executeQuery = async (req, res) => {
   console.log("in executeQuery\n");
@@ -15,8 +38,12 @@ exports.executeQuery = async (req, res) => {
       return res.status(400).json({ message: 'Query text is required' });
     }
     
+    // Get cached indices fields
+    const indicesFields = await getCachedIndicesFields();
+    
     // Translate natural language query to Elasticsearch DSL using QueryTranslationService
-    const translationResult = await QueryTranslationService.translateQuery(query);
+    // Pass indices fields as extra data
+    const translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
     const dslQuery = translationResult["elasticsearchQuery"];
 
     console.log("the elastecsearch query: " +JSON.stringify(dslQuery));
@@ -131,5 +158,18 @@ exports.clearContext = async (req, res) => {
     res.json({ message: 'Context cleared successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error clearing context', error: error.message });
+  }
+};
+
+// Refresh indices fields cache
+exports.refreshIndicesFields = async (req, res) => {
+  try {
+    const refreshedFields = await refreshIndicesFieldsCache();
+    res.json({ 
+      message: 'Indices fields cache refreshed successfully',
+      fieldsCount: Object.keys(refreshedFields).length
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error refreshing indices fields cache', error: error.message });
   }
 };

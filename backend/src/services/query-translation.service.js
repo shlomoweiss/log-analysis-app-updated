@@ -14,13 +14,19 @@ class QueryTranslationService {
   /**
    * Translate a natural language query to Elasticsearch DSL
    * @param {string} naturalLanguageQuery - The natural language query to translate
-   * @param {string} userId - The ID of the user making the query
-   * @param {string} indexPattern - The Elasticsearch index pattern to search
-   * @param {Object} timeRange - The time range to search within
+   * @param {string} indexPattern - The Elasticsearch index pattern to search (default logs-*)
+   * @param {Object|null} timeRange - The time range to search within
+   * @param {Object} [extraData] - Optional extra data, e.g. { indicesFields }
    * @returns {Promise<Object>} - The translated Elasticsearch query
    */
-  async translateQuery(naturalLanguageQuery,indexPattern = 'logs-*', timeRange = null) {
-    console.log("in translateQuery befor autid ant the query is " +JSON.stringify(naturalLanguageQuery) )
+  async translateQuery(
+    naturalLanguageQuery,
+    extraData = {},
+    indexPattern = 'logs-*', 
+    timeRange = null
+    
+  ) {
+    console.log("in translateQuery before audit; the query is " +JSON.stringify(naturalLanguageQuery) )
     try {
       // Log the translation request
       /*await auditService.logAction("1", 'QUERY_TRANSLATION', {
@@ -28,29 +34,41 @@ class QueryTranslationService {
         indexPattern,
         timeRange
       });*/
+      // Optionally use indicesFields or other extra data as needed:
+      const indicesFields = extraData.indicesFields || null;
+
+      // Debug print if indicesFields are provided
+      if (indicesFields) {
+        console.log(
+          '[translateQuery] Received indicesFields keys:',
+          Array.isArray(indicesFields)
+            ? indicesFields.join(', ')
+            : JSON.stringify(indicesFields)
+        );
+      }
+
       console.log("in translateQuery after autid")
       let result;
       
       // Use CrewAI if enabled, otherwise fall back to the original LLM service
       
-        try {
+      try {
           // Check if CrewAI service is healthy
           const healthStatus = await crewAIService.checkHealth();
           
           if (healthStatus.status === 'healthy') {
             console.log('Using CrewAI for query translation');
-            
-           
-            
+            // Pass indicesFields to CrewAI if available
             result = await crewAIService.translateQuery(
               naturalLanguageQuery,
+              indicesFields
             );
             
             // Add source information to the result
             result.source = 'crewai';
 
             console.log("*****************************************************")
-            console.log(JSON.stringify(result))
+            console.log(JSON.stringify(result ))
             
             return result;
           } else {
