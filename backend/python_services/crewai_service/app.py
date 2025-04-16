@@ -117,7 +117,8 @@ Review and optimize the query for:
 2. Accuracy (ensure it matches the user's intent and available fields)
 3. Completeness (include all relevant filters)
 4. Best practices (follow Elasticsearch query best practices, respect field list)
-5. set size filet to 10000
+5. set size filed to 10000
+6. make sure @timestamp is one on rturn fields
 
 Respond in the following format:
 
