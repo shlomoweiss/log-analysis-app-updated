@@ -1,9 +1,113 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 
 const ResultsTable = () => {
   const { results, loading } = useSelector(state => state.query);
-  const [expandedRows, setExpandedRows] = useState({});
+  const [columnWidths, setColumnWidths] = useState({});
+  const tableRef = useRef(null);
+  
+  // Track resize state
+  const [isResizing, setIsResizing] = useState(false);
+  const [currentResizer, setCurrentResizer] = useState(null);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(0);
+  
+  // Handle resize start
+  const startResize = (e, index) => {
+    e.preventDefault();
+    
+    // Get the table's first row to find column elements
+    const headerRow = tableRef.current.querySelector('thead tr');
+    const th = headerRow.children[index];
+    
+    setIsResizing(true);
+    setCurrentResizer(index);
+    setStartX(e.pageX);
+    setStartWidth(th.offsetWidth);
+  };
+  
+  // Handle resize move
+  const onMouseMove = (e) => {
+    if (!isResizing) return;
+    
+    // Calculate the new width based on mouse movement
+    const diff = e.pageX - startX;
+    const newWidth = Math.max(50, startWidth + diff); // Minimum width of 50px
+    
+    // Apply the new width to the specific column
+    if (tableRef.current) {
+      const headerRow = tableRef.current.querySelector('thead tr');
+      const bodyRows = tableRef.current.querySelectorAll('tbody tr');
+      
+      // Update header
+      if (headerRow && headerRow.children[currentResizer]) {
+        headerRow.children[currentResizer].style.width = `${newWidth}px`;
+        headerRow.children[currentResizer].style.minWidth = `${newWidth}px`;
+      }
+      
+      // Update all rows in the body
+      bodyRows.forEach(row => {
+        if (row.children[currentResizer]) {
+          row.children[currentResizer].style.width = `${newWidth}px`;
+          row.children[currentResizer].style.minWidth = `${newWidth}px`;
+        }
+      });
+      
+      // Update state to remember the width
+      setColumnWidths(prev => ({
+        ...prev,
+        [currentResizer]: newWidth
+      }));
+    }
+  };
+  
+  // Handle resize end
+  const stopResize = () => {
+    setIsResizing(false);
+    setCurrentResizer(null);
+  };
+  
+  // Set up event listeners
+  useEffect(() => {
+    const handleMouseMove = (e) => onMouseMove(e);
+    const handleMouseUp = () => stopResize();
+    
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, currentResizer, startX, startWidth]);
+  
+  // Apply remembered column widths when results change
+  useEffect(() => {
+    if (tableRef.current && Object.keys(columnWidths).length > 0) {
+      const headerRow = tableRef.current.querySelector('thead tr');
+      const bodyRows = tableRef.current.querySelectorAll('tbody tr');
+      
+      Object.entries(columnWidths).forEach(([index, width]) => {
+        const idx = parseInt(index);
+        
+        // Apply to header
+        if (headerRow && headerRow.children[idx]) {
+          headerRow.children[idx].style.width = `${width}px`;
+          headerRow.children[idx].style.minWidth = `${width}px`;
+        }
+        
+        // Apply to all rows
+        bodyRows.forEach(row => {
+          if (row.children[idx]) {
+            row.children[idx].style.width = `${width}px`;
+            row.children[idx].style.minWidth = `${width}px`;
+          }
+        });
+      });
+    }
+  }, [results, columnWidths]);
   
   if (loading) {
     return (
@@ -51,16 +155,6 @@ const ResultsTable = () => {
   // Get all unique keys from all flattened result objects
   const allKeys = [...new Set(flattenedResults.flatMap(result => Object.keys(result)))];
   
-  // Group keys by their prefix for better organization
-  const groupedKeys = allKeys.reduce((groups, key) => {
-    const prefix = key.split('.')[0];
-    if (!groups[prefix]) {
-      groups[prefix] = [];
-    }
-    groups[prefix].push(key);
-    return groups;
-  }, {});
-  
   // Function to safely render cell content
   const renderCellContent = (value) => {
     if (value === null || value === undefined) {
@@ -78,72 +172,52 @@ const ResultsTable = () => {
     return String(value);
   };
   
-  // Toggle expanded state for a group
-  const toggleGroup = (prefix) => {
-    setExpandedRows({
-      ...expandedRows,
-      [prefix]: !expandedRows[prefix]
-    });
-  };
-  
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-xl font-semibold mb-4">Results ({results.length})</h2>
-      <div className="overflow-x-auto max-w-full">
-        <table className="min-w-full divide-y divide-gray-200 table-fixed">
+      <div className="overflow-x-auto">
+        <table ref={tableRef} className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
           <thead className="bg-gray-50">
             <tr>
-              {/* Render grouped headers */}
-              {Object.keys(groupedKeys).map(prefix => (
+              {allKeys.map((key, index) => (
                 <th
-                  key={prefix}
-                  onClick={() => toggleGroup(prefix)}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  colSpan={expandedRows[prefix] ? groupedKeys[prefix].length : 1}
+                  key={key}
+                  style={{ 
+                    width: columnWidths[index] ? `${columnWidths[index]}px` : '150px', 
+                    position: 'relative',
+                    minWidth: columnWidths[index] ? `${columnWidths[index]}px` : '150px'
+                  }}
+                  className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 px-4 py-2"
                 >
-                  {prefix} {expandedRows[prefix] ? '▼' : '►'}
+                  <div className="flex items-center justify-between">
+                    <span className="truncate pr-4">{key}</span>
+                    <div
+                      onMouseDown={(e) => startResize(e, index)}
+                      className="absolute right-0 top-0 h-full w-4 cursor-col-resize hover:bg-blue-200"
+                    >
+                      <div className="absolute right-0 top-0 h-full w-1 bg-gray-300"></div>
+                    </div>
+                  </div>
                 </th>
               ))}
-            </tr>
-            {/* Render subheaders when expanded */}
-            <tr>
-              {Object.entries(groupedKeys).flatMap(([prefix, keys]) => 
-                expandedRows[prefix] 
-                  ? keys.map(key => (
-                      <th
-                        key={key}
-                        className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                      >
-                        {key.replace(`${prefix}.`, '')}
-                      </th>
-                    ))
-                  : [<th key={`${prefix}-placeholder`} className="hidden"></th>]
-              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {flattenedResults.map((result, rowIndex) => (
               <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                {Object.entries(groupedKeys).flatMap(([prefix, keys]) => 
-                  expandedRows[prefix] 
-                    ? keys.map(key => (
-                        <td 
-                          key={`${rowIndex}-${key}`} 
-                          className="px-4 py-2 text-sm text-gray-500 border-r border-gray-200 overflow-hidden text-ellipsis"
-                          title={renderCellContent(result[key])}
-                        >
-                          {renderCellContent(result[key])}
-                        </td>
-                      ))
-                    : [
-                        <td 
-                          key={`${rowIndex}-${prefix}-collapsed`} 
-                          className="px-4 py-2 text-sm text-gray-500 border-r border-gray-200"
-                        >
-                          {keys.some(key => result[key]) ? '...' : ''}
-                        </td>
-                      ]
-                )}
+                {allKeys.map((key, colIndex) => (
+                  <td
+                    key={`${rowIndex}-${key}`}
+                    style={{ 
+                      width: columnWidths[colIndex] ? `${columnWidths[colIndex]}px` : '150px',
+                      minWidth: columnWidths[colIndex] ? `${columnWidths[colIndex]}px` : '150px'
+                    }}
+                    className="text-sm text-gray-500 border-r border-gray-200 px-4 py-2 truncate"
+                    title={renderCellContent(result[key])}
+                  >
+                    {renderCellContent(result[key])}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -152,8 +226,19 @@ const ResultsTable = () => {
       
       {/* Add tooltip to explain the interaction */}
       <div className="mt-4 text-sm text-gray-500">
-        <p>Click on column group headers to expand/collapse sections</p>
+        <p>Drag column edges to resize columns.</p>
       </div>
+      
+      {/* Overlay during resizing to capture mouse events */}
+      {isResizing && (
+        <div 
+          className="fixed top-0 left-0 w-full h-full z-50" 
+          style={{ 
+            cursor: 'col-resize',
+            userSelect: 'none'
+          }} 
+        />
+      )}
     </div>
   );
 };
