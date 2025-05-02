@@ -12,6 +12,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.0.2",
+    "@mui/x-data-grid": "^8.2.0",
     "@reduxjs/toolkit": "^1.9.5",
     "chart.js": "^4.3.3",
     "chartjs-adapter-date-fns": "^2.0.1",
