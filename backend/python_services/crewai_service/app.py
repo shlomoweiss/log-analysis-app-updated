@@ -21,7 +21,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "your-api-key")
 
 # Initialize LLM
 llm = ChatOpenAI(
-    model="soob3123_amoral-gemma3-12b-v2",
+    model="gemma-2-9b-it",
     temperature=0,
     base_url="http://192.168.1.191:1234/v1",
     api_key=OPENAI_API_KEY
@@ -116,9 +116,10 @@ Review and optimize the query for:
 1. Performance (avoid wildcard prefixes, use appropriate field types)
 2. Accuracy (ensure it matches the user's intent and available fields)
 3. Completeness (include all relevant filters)
-4. Best practices (follow Elasticsearch query best practices, respect field list)
+4. Best practices (follow Elasticsearch query best practices)
 5. set size filed to 10000
-6. make sure @timestamp is one on rturn fields
+6. make sure @timestamp is one on return fields
+7. very importent!!! do not remove any fields from the given Elasticsearch query result, the optimization should not change the given query result or try to reduce the amount of data the query return
 
 Respond in the following format:
 
@@ -126,7 +127,7 @@ Respond in the following format:
 <the optimized Elasticsearch query, valid JSON>
 ```
 
-Explanation: <one or two paragraphs explaining improvements, if any>
+
 """
 )
 
