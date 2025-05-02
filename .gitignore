@@ -16,3 +16,5 @@ backend/python_services/crewai_service/logs/connector_service.log
 backend/python_services/crewai_service/logs/crewai_service.log
 backend/python_services/crewai_service/logs/service_pids.txt
 backend/python_services/crewai_service/testllm.py
+backend/a.tmp
+

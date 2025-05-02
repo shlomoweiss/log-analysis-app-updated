@@ -32,7 +32,9 @@ const ResultsTable = () => {
     
     // Calculate the new width based on mouse movement
     const diff = e.pageX - startX;
-    const newWidth = Math.max(50, startWidth + diff); // Minimum width of 50px
+    
+    // Set minimum width to 30px to ensure at least some content remains visible
+    const newWidth = Math.max(30, startWidth + diff);
     
     // Apply the new width to the specific column
     if (tableRef.current) {
@@ -185,7 +187,7 @@ const ResultsTable = () => {
                   style={{ 
                     width: columnWidths[index] ? `${columnWidths[index]}px` : '150px', 
                     position: 'relative',
-                    minWidth: columnWidths[index] ? `${columnWidths[index]}px` : '150px'
+                    minWidth: '30px' // Absolute minimum width
                   }}
                   className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 px-4 py-2"
                 >
@@ -210,7 +212,7 @@ const ResultsTable = () => {
                     key={`${rowIndex}-${key}`}
                     style={{ 
                       width: columnWidths[colIndex] ? `${columnWidths[colIndex]}px` : '150px',
-                      minWidth: columnWidths[colIndex] ? `${columnWidths[colIndex]}px` : '150px'
+                      minWidth: '30px' // Absolute minimum width
                     }}
                     className="text-sm text-gray-500 border-r border-gray-200 px-4 py-2 truncate"
                     title={renderCellContent(result[key])}

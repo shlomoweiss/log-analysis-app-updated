@@ -34,11 +34,14 @@ async def proxy_query(query_request: QueryRequest):
     """
     try:
         # --- Begin indicesFields support ---
+        print(f"[proxy_query] Received request: {query_request.model_dump_json()}")
         indices_fields = None
         if query_request.additional_context and 'indicesFields' in query_request.additional_context:
             indices_fields = query_request.additional_context['indicesFields']
             # Log indicesFields for debug
             print(f"[proxy_query] Received indicesFields with keys: {list(indices_fields.keys()) if isinstance(indices_fields, dict) else str(indices_fields)}")
+        else:
+            print("[proxy_query] No indicesFields provided in additional_context.")    
 
         # Prepare forward payload (including additional_context with indicesFields if present)
         forward_payload = query_request.model_dump()

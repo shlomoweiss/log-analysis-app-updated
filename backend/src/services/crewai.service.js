@@ -17,12 +17,15 @@ class CrewAIService {
    * @param {Object} indicesFields - The indices fields to send as additional context
    * @returns {Promise<Object>} - The translated Elasticsearch query and metadata
    */
-  async translateQuery(naturalLanguageQuery, indexPattern = 'logs-*', timeRange = null, indicesFields = null) {
+  async translateQuery(naturalLanguageQuery,indicesFields = null, indexPattern = '*logs*',timeRange = null) {
     try {
       // Compose the additional_context with indicesFields
       const additionalContext = {
         ...(indicesFields ? { indicesFields } : {})
       };
+      console.log('indicesFields: ', JSON.stringify(indicesFields));
+
+      console.log('additionalContext: ', JSON.stringify(additionalContext));
 
       const response = await axios.post(`${this.crewAIConnectorUrl}/proxy-query`, {
         natural_language_query: naturalLanguageQuery,

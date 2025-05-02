@@ -43,6 +43,7 @@ exports.executeQuery = async (req, res) => {
     
     // Translate natural language query to Elasticsearch DSL using QueryTranslationService
     // Pass indices fields as extra data
+    console.log("in executeQuery indicesFields: " + JSON.stringify(indicesFields));
     const translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
     const dslQuery = translationResult["elasticsearchQuery"];
 

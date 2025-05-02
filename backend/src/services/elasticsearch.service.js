@@ -161,9 +161,15 @@ exports.getAllIndicesFields = async () => {
         const mappingObj = mappingResponse.body ?? mappingResponse;
         const mapping = mappingObj[indexName];
         const fields = mapping?.mappings?.properties || {};
-        
-        // Create an object with field names and their types
         const fieldTypes = {};
+        // Create an object with field names and their types
+         // Add Elasticsearch metadata fields
+         fieldTypes['_id'] = 'keyword';
+         fieldTypes['_index'] = 'keyword';
+         fieldTypes['_score'] = 'float';
+         fieldTypes['_source'] = 'object';
+         fieldTypes['_type'] = 'keyword';
+        
         for (const [fieldName, fieldConfig] of Object.entries(fields)) {
           fieldTypes[fieldName] = fieldConfig.type || 'unknown';
         }
