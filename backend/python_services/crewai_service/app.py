@@ -131,6 +131,22 @@ Respond in the following format:
 """
 )
 
+FIX_QUERY_PROMPT = PromptTemplate.from_template(
+    """
+Given this Elasticsearch query in JSON format:
+{es_query}
+
+Index Fields available for this query (names and types):
+{indices_fields_context}
+getting this error:
+{error_message}
+fix the query  and respond in the following format:
+```json
+<the fixed Elasticsearch query, valid JSON>
+```
+"""
+)
+
 def extract_json_from_string(input_string):
     """
     Extract a JSON object from a string that might contain other content.
@@ -243,13 +259,65 @@ async def translate_query(query_request: QueryRequest):
             print("Successfully extracted JSON:")
             print(json.dumps(elasticsearch_query, indent=2))
         else:
-           raise ValueError("Could not extract Elasticsearch query from result") 
+           print("Could not extract Elasticsearch query from result use translation result") 
+           elasticsearch_query = extract_json_from_string(str(translation_result))
         
         return QueryResponse(
             elasticsearch_query=elasticsearch_query,
         )
    
+@app.post("/fix-query",response_model=QueryResponse)
+async def fix_query(query_request: QueryRequest):
+    print ("in fix_query")
+    
+    # Extract indices fields from additional context if available
+    indices_fields = None
+    if query_request.additional_context and "indicesFields" in query_request.additional_context:
+        indices_fields = query_request.additional_context["indicesFields"]
+        print(f"[fix_query] indicesFields received: {type(indices_fields)} - {list(indices_fields.keys()) if isinstance(indices_fields, dict) else str(indices_fields)}")
+    
+    # Format indices fields for prompt context
+    indices_fields_context = summarize_indices_fields(indices_fields)
 
+    print("******************************************************************")
+    print ("indices_fields_context = " + indices_fields_context)
+    print("******************************************************************")
+
+    # 1. Fix the Elasticsearch query
+    fix_chain = FIX_QUERY_PROMPT | llm
+    fix_result = await fix_chain.ainvoke(
+        {
+            "es_query": query_request.additional_context["DslQuery"],
+            "error_message": query_request.additional_context["ErrorMessage"],
+            "indices_fields_context": indices_fields_context
+        }
+    )
+    
+    if isinstance(fix_result, dict):
+        fix_result = fix_result.get("content", str(fix_result))
+    else:
+        fix_result = str(fix_result)
+
+    
+    elasticsearch_query = extract_json_from_string(str(fix_result))
+
+    if (elasticsearch_query):
+        print("Successfully extracted JSON:")
+        print(json.dumps(elasticsearch_query, indent=2))
+    else:
+       print("Could not extract Elasticsearch query from result use translation result") 
+       elasticsearch_query = {
+          "query": {
+           "match_all": {}
+          },
+          "size": 1,
+          "_source": True
+       }
+    
+    return QueryResponse(
+        elasticsearch_query=elasticsearch_query,
+    )
+    
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "langchain-log-query-service"}

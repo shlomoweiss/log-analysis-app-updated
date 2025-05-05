@@ -85,6 +85,49 @@ class QueryTranslationService {
       throw new Error(`Failed to translate query: ${error.message}`);
     }
   }
+
+  async FixQuery(dslQuery,indicesFields,errorMesage)
+  {
+    
+      console.log("in FixQuery the dslQuery is " +JSON.stringify(dslQuery) )
+      console.log("in FixQuery the indicesFields is " +JSON.stringify(indicesFields) )
+      console.log("in FixQuery the errorMesage is " +JSON.stringify(errorMesage) )
+      
+      
+      // Use CrewAI if enabled, otherwise fall back to the original LLM service
+      let result;
+      
+      try {
+          // Check if CrewAI service is healthy
+          const healthStatus = await crewAIService.checkHealth();
+          
+          if (healthStatus.status === 'healthy') {
+            console.log('Using CrewAI for fixing query');
+            // Pass indicesFields to CrewAI if available
+            result = await crewAIService.fixQuery(
+              dslQuery,
+              indicesFields,
+              errorMesage
+            );
+            
+            // Add source information to the result
+            result.source = 'crewai';
+
+            console.log("*****************************************************")
+            console.log(JSON.stringify(result ))
+            
+            return result;
+          } else {
+            console.warn('CrewAI service is not healthy, falling back to original LLM service');
+          }
+        } catch (crewAIError) {
+          console.error('Error using CrewAI service, falling back to original LLM service:', crewAIError);
+        }
+      
+      
+      
+  }
+  
 }
 
 module.exports = new QueryTranslationService();

@@ -43,6 +43,32 @@ class CrewAIService {
     }
   }
 
+  async fixQuery(dslQuery, indicesFields = null, errorMesage ) {
+    try {
+      // Compose the additional_context with indicesFields
+      const additionalContext = {
+        indicesFields:JSON.stringify(indicesFields),
+        errorMessage: errorMesage,
+        dslQuery: dslQuery
+      };
+      
+
+      const response = await axios.post(`${this.crewAIConnectorUrl}/fix-query`, {
+        natural_language_query: "",
+        index_pattern: "",
+        time_range: {},
+        additional_context: additionalContext
+      });
+
+      return {
+        elasticsearchQuery: response.data.elasticsearch_query,
+      };
+    } catch (error) {
+      console.error('Error translating query with CrewAI:', error);
+      throw new Error(`Failed to translate query with CrewAI: ${error.message}`);
+    }
+  }
+
   /**
    * Check the health of the CrewAI service
    * @returns {Promise<Object>} - The health status of the CrewAI service

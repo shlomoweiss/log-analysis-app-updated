@@ -64,6 +64,42 @@ async def proxy_query(query_request: QueryRequest):
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error communicating with CrewAI service: {str(e)}")
 
+@app.post("/fix-query", response_model=QueryResponse)
+async def proxy_fix_query(query_request: QueryRequest):
+    """
+    Proxy the fix query to the CrewAI service and return the response.
+    This service acts as a bridge between the Node.js backend and the Python CrewAI service.
+    """
+    try:
+        print("inside proxy_fix_query")
+        print(f"[proxy_fix_query] Received request: {query_request.model_dump_json()}")
+        # Prepare forward payload
+        #forward_payload = query_request.model_dump_json()
+        forward_payload = {
+            "natural_language_query": query_request.natural_language_query,
+            "index_pattern": query_request.index_pattern,
+            "time_range": query_request.time_range,
+            "additional_context": {
+                "indicesFields": query_request.additional_context["indicesFields"],
+                "DslQuery": query_request.additional_context["dslQuery"],
+                "ErrorMessage": query_request.additional_context["errorMessage"]
+            }
+        }
+     
+        print(f"before request forward_payload: {forward_payload}")
+        # Forward the request to the CrewAI service
+        response = requests.post(
+            f"{CREWAI_SERVICE_URL}/fix-query",
+            json=forward_payload,
+            headers={"Content-Type": "application/json"},
+            timeout=9000
+        )
+        print("after request")
+        # Return the response from the CrewAI service
+        return response.json()
+        
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error communicating with CrewAI service: {str(e)}")
 @app.get("/health")
 async def health_check():
     """

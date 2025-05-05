@@ -48,13 +48,14 @@ exports.executeQuery = async (dslQuery, index = 'logs-*') => {
     return {
       results,
       executionTime,
-      total: response.hits.total.value
+      total: response.hits.total.value,
+      querySuccess: true,
+      error: null
     };
   } catch (error) {
     console.error('Error executing Elasticsearch query:', error);
-    
     // If there's an error, fall back to mock data
-    return this.getMockResults(dslQuery);
+    return {results: [], executionTime: 0, total: 0, querySuccess: false, error: error.message};
   }
 };
 

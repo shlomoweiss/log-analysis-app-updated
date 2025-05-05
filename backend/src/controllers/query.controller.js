@@ -44,13 +44,14 @@ exports.executeQuery = async (req, res) => {
     // Translate natural language query to Elasticsearch DSL using QueryTranslationService
     // Pass indices fields as extra data
     console.log("in executeQuery indicesFields: " + JSON.stringify(indicesFields));
-    const translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
-    const dslQuery = translationResult["elasticsearchQuery"];
+    var translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
+    var dslQuery = translationResult["elasticsearchQuery"];
 
     console.log("the elastecsearch query: " +JSON.stringify(dslQuery));
     
     // Execute the query
-    const { results, executionTime, total } = await elasticsearchService.executeQuery(dslQuery);
+ 
+    var { results, executionTime, total, querySuccess,error } = await elasticsearchService.executeQuery(dslQuery);
     
     // Save query to history
     /*const queryRecord = new Query({
@@ -62,6 +63,20 @@ exports.executeQuery = async (req, res) => {
     });
     
     await queryRecord.save(); */
+
+    if (!querySuccess) {
+      console.log("query failed trying to fix it");
+      translationResult = await QueryTranslationService.FixQuery(dslQuery,indicesFields,error)
+      dslQuery = translationResult["elasticsearchQuery"];
+      const response = await elasticsearchService.executeQuery(dslQuery);
+      results = response.results;
+      executionTime = response.executionTime;
+      total = response.total;
+      querySuccess = response.querySuccess;
+      error = response.error;
+      
+     
+    }
     const qresult={
       query,
       translatedQuery: JSON.stringify(dslQuery),
