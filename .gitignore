@@ -18,3 +18,4 @@ backend/python_services/crewai_service/logs/service_pids.txt
 backend/python_services/crewai_service/testllm.py
 backend/a.tmp
 
+.vscode/settings.json

@@ -5,12 +5,12 @@ import TimelineVisualization from '../components/TimelineVisualization';
 
 const Dashboard = () => {
   return (
-    <div>
+    <div className="w-full">
       <div className="pb-5 border-b border-gray-200">
         <h1 className="text-2xl font-bold leading-tight text-gray-900">Dashboard</h1>
       </div>
       
-      <div className="mt-6">
+      <div className="mt-6 w-full">
         <QueryInput />
         <TimelineVisualization />
         <ResultsTable />

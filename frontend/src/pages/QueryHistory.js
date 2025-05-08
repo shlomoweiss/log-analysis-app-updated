@@ -5,18 +5,18 @@ const QueryHistory = () => {
   const { history } = useSelector(state => state.query);
 
   return (
-    <div>
+    <div className="w-full">
       <div className="pb-5 border-b border-gray-200">
         <h1 className="text-2xl font-bold leading-tight text-gray-900">Query History</h1>
       </div>
       
-      <div className="mt-6 bg-white shadow rounded-lg p-6">
+      <div className="mt-6 bg-white shadow rounded-lg p-6 w-full">
         {history.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-gray-500">No query history yet. Try executing some queries first.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

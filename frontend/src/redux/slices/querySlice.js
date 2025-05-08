@@ -36,6 +36,7 @@ export const saveQuery = createAsyncThunk(
   'query/save',
   async ({ queryText, name }, { rejectWithValue }) => {
     try {
+      console.log('Saving query:', queryText, name);
       // Make actual API call to the backend save endpoint
       const response = await fetch('/api/query/save', {
         method: 'POST',
@@ -80,6 +81,7 @@ const querySlice = createSlice({
       state.currentQuery = action.payload;
     },
     clearResults: (state) => {
+      console.log('Clearing results');
       state.results = [];
       state.translatedQuery = '';
       state.executionTime = 0;

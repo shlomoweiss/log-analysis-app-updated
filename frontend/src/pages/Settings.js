@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 
 const Settings = () => {
-  const { user } = useSelector(state => state.auth);
   const [settings, setSettings] = useState({
     theme: 'light',
     resultsPerPage: 20,
@@ -25,26 +23,12 @@ const Settings = () => {
   };
 
   return (
-    <div>
+    <div className="w-full">
       <div className="pb-5 border-b border-gray-200">
         <h1 className="text-2xl font-bold leading-tight text-gray-900">Settings</h1>
       </div>
       
-      <div className="mt-6 bg-white shadow rounded-lg p-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-medium text-gray-900">User Information</h2>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Username</p>
-              <p className="mt-1 text-sm text-gray-900">{user?.username || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Role</p>
-              <p className="mt-1 text-sm text-gray-900">{user?.role || 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-        
+      <div className="mt-6 bg-white shadow rounded-lg p-6 w-full">        
         <form onSubmit={handleSubmit}>
           <h2 className="text-lg font-medium text-gray-900 mb-4">Application Settings</h2>
           
@@ -82,7 +66,7 @@ const Settings = () => {
               <option value="100">100</option>
             </select>
           </div>
-          
+
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="defaultTimeRange">
               Default Time Range

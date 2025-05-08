@@ -17,6 +17,7 @@ const QueryInput = () => {
   const handleClear = () => {
     dispatch(setCurrentQuery(''));
     dispatch(clearResults());
+    console.log('Cleared current query and results');
   };
 
   return (
