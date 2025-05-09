@@ -1,8 +1,17 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { setCurrentQuery, executeQuery } from '../redux/slices/querySlice';
 
 const QueryHistory = () => {
   const { history } = useSelector(state => state.query);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleExecute = (query) => {
+    dispatch(setCurrentQuery(query));
+    navigate('/');
+  };
 
   return (
     <div className="w-full">
@@ -29,6 +38,9 @@ const QueryHistory = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Results
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -42,6 +54,14 @@ const QueryHistory = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.resultCount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => handleExecute(item.query)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <i className="fas fa-play mr-1"></i> Execute
+                      </button>
                     </td>
                   </tr>
                 ))}
