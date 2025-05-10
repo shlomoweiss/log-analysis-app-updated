@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { saveQuery, fetchSavedQueries } from '../redux/slices/querySlice';
+import { useNavigate } from 'react-router-dom';
+import { saveQuery, fetchSavedQueries, executeTranslatedQuery } from '../redux/slices/querySlice';
 
 const SavedQueries = () => {
   const [queryName, setQueryName] = useState('');
@@ -8,6 +9,7 @@ const SavedQueries = () => {
   const [selectedQuery, setSelectedQuery] = useState(null);
   
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { currentQuery, savedQueries, translatedQuery, results, loading } = useSelector(state => state.query);
 
   useEffect(() => {
@@ -26,6 +28,14 @@ const SavedQueries = () => {
       setQueryName('');
       setShowSaveForm(false);
     }
+  };
+
+  const handleRunQuery = (query) => {
+    dispatch(executeTranslatedQuery({
+      queryText: query.text,
+      translatedQuery: query.translatedQuery
+    }));
+    navigate('/');
   };
 
   return (
@@ -92,12 +102,20 @@ const SavedQueries = () => {
                       {new Date(query.createdAt).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => setSelectedQuery(query)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View
-                      </button>
+                      <div className="flex space-x-4">
+                        <button
+                          onClick={() => setSelectedQuery(query)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleRunQuery(query)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          Run
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

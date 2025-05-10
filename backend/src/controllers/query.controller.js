@@ -31,67 +31,85 @@ async function refreshIndicesFieldsCache() {
 exports.executeQuery = async (req, res) => {
   console.log("in executeQuery\n");
   try {
-    const { query } = req.body;
+    const { query, translatedQuery } = req.body;
     console.log("in executeQuery body "+ JSON.stringify(query));
     if (!query) {
-      console.log("quey is empty")
+      console.log("query is empty")
       return res.status(400).json({ message: 'Query text is required' });
     }
-    
-    // Get cached indices fields
-    const indicesFields = await getCachedIndicesFields();
-    
-    // Translate natural language query to Elasticsearch DSL using QueryTranslationService
-    // Pass indices fields as extra data
-    console.log("in executeQuery indicesFields: " + JSON.stringify(indicesFields));
-    var translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
-    var dslQuery = translationResult["elasticsearchQuery"];
 
-    console.log("the elastecsearch query: " +JSON.stringify(dslQuery));
-    
-    // Execute the query
- 
-    var { results, executionTime, total, querySuccess,error } = await elasticsearchService.executeQuery(dslQuery);
-    
-    // Save query to history
-    /*const queryRecord = new Query({
-      user: req.user._id,
-      text: query,
-      translatedQuery: dslQueryString || JSON.stringify(dslQuery),
-      resultCount: total,
-      executionTime 
-    });
-    
-    await queryRecord.save(); */
+    let results = [];
+    let executionTime = 0;
+    let total = 0;
+    let querySuccess = false;
+    let error = null;
+    let dslQuery;
 
-    if (!querySuccess) {
-      console.log("query failed trying to fix it");
-      translationResult = await QueryTranslationService.FixQuery(dslQuery,indicesFields,error)
+    // If we have a pre-translated query, use it directly
+    if (translatedQuery) {
+      try {
+        dslQuery = JSON.parse(translatedQuery.replace(/&quot;/g, '"'));
+        const response = await elasticsearchService.executeQuery(dslQuery);
+        results = response.results;
+        executionTime = response.executionTime;
+        total = response.total;
+        querySuccess = response.querySuccess;
+        error = response.error;
+      } catch (parseError) {
+        console.error('Error parsing translated query:', parseError);
+        // If parsing fails, fall back to normal translation
+        dslQuery = null;
+      }
+    }
+
+    // If no translated query or parsing failed, use normal translation process
+    if (!dslQuery) {
+      // Get cached indices fields
+      const indicesFields = await getCachedIndicesFields();
+      
+      // Translate natural language query to Elasticsearch DSL using QueryTranslationService
+      // Pass indices fields as extra data
+      console.log("in executeQuery indicesFields: " + JSON.stringify(indicesFields));
+      var translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
       dslQuery = translationResult["elasticsearchQuery"];
-      const response = await elasticsearchService.executeQuery(dslQuery);
+
+      console.log("the elasticsearch query: " + JSON.stringify(dslQuery));
+      
+      // Execute the query
+      var response = await elasticsearchService.executeQuery(dslQuery);
       results = response.results;
       executionTime = response.executionTime;
       total = response.total;
       querySuccess = response.querySuccess;
       error = response.error;
-      
-     
+
+      if (!querySuccess) {
+        console.log("query failed trying to fix it");
+        translationResult = await QueryTranslationService.FixQuery(dslQuery, indicesFields, error);
+        dslQuery = translationResult["elasticsearchQuery"];
+        response = await elasticsearchService.executeQuery(dslQuery);
+        results = response.results;
+        executionTime = response.executionTime;
+        total = response.total;
+        querySuccess = response.querySuccess;
+        error = response.error;
+      }
     }
-    const qresult={
+
+    const qresult = {
       query,
       translatedQuery: JSON.stringify(dslQuery),
       results,
       executionTime,
       total,
       translationSource: res.source // indicate if CrewAI or original LLM was used
+    };
 
-    }
-
-    console.log(JSON.stringify(qresult))
+    console.log(JSON.stringify(qresult));
     
     res.json(qresult);
   } catch (error) {
-    console.log ("got error !!! =" + error.message)
+    console.log("got error !!! =" + error.message);
     res.status(500).json({ message: 'Error executing query', error: error.message });
   }
 };

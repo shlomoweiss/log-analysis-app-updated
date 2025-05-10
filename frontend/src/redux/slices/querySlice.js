@@ -31,6 +31,40 @@ export const executeQuery = createAsyncThunk(
   }
 );
 
+// Async thunk for executing a previously translated query
+export const executeTranslatedQuery = createAsyncThunk(
+  'query/executeTranslated',
+  async ({ queryText, translatedQuery }, { rejectWithValue }) => {
+    try {
+      // Make API call to execute the translated query directly
+      const response = await fetch('/api/query/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          query: queryText,
+          translatedQuery: translatedQuery // Send the pre-translated query
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error ${response.status}: Failed to execute query`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        query: queryText,
+        ...data
+      };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 // Async thunk for saving a query
 export const saveQuery = createAsyncThunk(
   'query/save',
@@ -139,6 +173,30 @@ const querySlice = createSlice({
         ].slice(0, 20); // Keep only the last 20 queries
       })
       .addCase(executeQuery.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(executeTranslatedQuery.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(executeTranslatedQuery.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentQuery = action.payload.query;
+        state.results = action.payload.results;
+        state.translatedQuery = action.payload.translatedQuery;
+        state.executionTime = action.payload.executionTime;
+        state.history = [
+          {
+            id: Date.now(),
+            query: action.payload.query,
+            timestamp: new Date().toISOString(),
+            resultCount: action.payload.results.length
+          },
+          ...state.history
+        ].slice(0, 20);
+      })
+      .addCase(executeTranslatedQuery.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
