@@ -24,13 +24,13 @@ const Layout = () => {
               </Link>
             </li>
             <li className="px-4 py-2 hover:bg-gray-700">
-              <Link to="/history" className="flex items-center">
+              <Link to="/query-history" className="flex items-center">
                 <i className="fas fa-history mr-2"></i>
                 Query History
               </Link>
             </li>
             <li className="px-4 py-2 hover:bg-gray-700">
-              <Link to="/saved" className="flex items-center">
+              <Link to="/saved-queries" className="flex items-center">
                 <i className="fas fa-save mr-2"></i>
                 Saved Queries
               </Link>

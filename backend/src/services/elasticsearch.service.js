@@ -15,7 +15,6 @@ const client = new Client({
   }
 });
 
-
 // Execute Elasticsearch query
 exports.executeQuery = async (dslQuery, index = 'logs-*') => {
   try {
@@ -57,6 +56,191 @@ exports.executeQuery = async (dslQuery, index = 'logs-*') => {
     // If there's an error, fall back to mock data
     return {results: [], executionTime: 0, total: 0, querySuccess: false, error: error.message};
   }
+};
+
+// Get context logs around a specific timestamp
+exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'logs-*') => {
+  try {
+    const health = await this.checkConnection();
+    
+    if (!health.connected) {
+      return this.getMockContextResults(timestamp, service, limit);
+    }
+    console.log("ES getLogContext index name: " + index + " timestamp: " + timestamp + " service: " + service + " limit: " + limit);
+
+    const startTime = Date.now();
+    
+    // Parse timestamp and ensure correct timezone handling
+    const utcTimestamp = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
+    const targetTime = new Date(utcTimestamp);
+
+    // Build base query parts that will be common to both queries
+    const baseQuery = {
+      size: limit,
+      query: {
+        bool: {
+          must: []
+        }
+      }
+    };
+
+    // Add service filter if provided
+    if (service) {
+      baseQuery.query.bool.must.push({
+        term: { service: service }
+      });
+    }
+
+    // Query for logs before the target timestamp
+    const beforeQuery = {
+      ...baseQuery,
+      sort: [{ "@timestamp": 'desc' }], // Sort descending to get most recent first
+      query: {
+        bool: {
+          must: [
+            ...baseQuery.query.bool.must,
+            {
+              range: {
+                "@timestamp": {
+                  lt: targetTime.toISOString()
+                }
+              }
+            }
+          ]
+        }
+      }
+    };
+
+    // Query for logs after the target timestamp
+    const afterQuery = {
+      ...baseQuery,
+      sort: [{ "@timestamp": 'asc' }], // Sort ascending to get earliest first
+      query: {
+        bool: {
+          must: [
+            ...baseQuery.query.bool.must,
+            {
+              range: {
+                "@timestamp": {
+                  gt: targetTime.toISOString()
+                }
+              }
+            }
+          ]
+        }
+      }
+    };
+
+    // Query for the exact timestamp
+    const exactQuery = {
+      size: 1,
+      sort: [{ "@timestamp": 'asc' }],
+      query: {
+        bool: {
+          must: [
+            ...baseQuery.query.bool.must,
+            {
+              term: {
+                "@timestamp": targetTime.toISOString()
+              }
+            }
+          ]
+        }
+      }
+    };
+
+    console.log("ES getLogContext queries:", {
+      before: beforeQuery,
+      exact: exactQuery,
+      after: afterQuery
+    });
+
+    // Execute all three queries in parallel
+    const [beforeResponse, exactResponse, afterResponse] = await Promise.all([
+      client.search({ index, body: beforeQuery }),
+      client.search({ index, body: exactQuery }),
+      client.search({ index, body: afterQuery })
+    ]);
+
+    const endTime = Date.now();
+    const executionTime = (endTime - startTime) / 1000;
+
+    // Process results
+    const beforeResults = beforeResponse.hits.hits.map(hit => ({
+      ...hit._source,
+      id: hit._id
+    }));
+
+    const exactResults = exactResponse.hits.hits.map(hit => ({
+      ...hit._source,
+      id: hit._id
+    }));
+
+    const afterResults = afterResponse.hits.hits.map(hit => ({
+      ...hit._source,
+      id: hit._id
+    }));
+
+    // Combine results in the correct order
+    const contextResults = [
+      ...beforeResults.reverse(), // Reverse to get chronological order
+      ...exactResults,
+      ...afterResults
+    ];
+
+    return {
+      results: contextResults,
+      executionTime,
+      total: contextResults.length,
+      querySuccess: true,
+      error: null
+    };
+  } catch (error) {
+    console.error('Error fetching log context:', error);
+    return this.getMockContextResults(timestamp, service, limit);
+  }
+};
+
+// Get mock context results
+exports.getMockContextResults = (timestamp, service = null, limit = 5) => {
+  const results = [];
+  const targetTime = new Date(timestamp).getTime();
+  
+  // Generate mock logs before target time
+  for (let i = limit; i > 0; i--) {
+    results.push({
+      timestamp: new Date(targetTime - 1000 * 60 * i).toISOString(),
+      level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
+      service: service || ['payment', 'auth', 'user', 'order'][Math.floor(Math.random() * 4)],
+      message: `Sample log message ${i} before target time`
+    });
+  }
+
+  // Add target log
+  results.push({
+    timestamp: new Date(targetTime).toISOString(),
+    level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
+    service: service || ['payment', 'auth', 'user', 'order'][Math.floor(Math.random() * 4)],
+    message: 'Target log message'
+  });
+
+  // Generate mock logs after target time
+  for (let i = 1; i <= limit; i++) {
+    results.push({
+      timestamp: new Date(targetTime + 1000 * 60 * i).toISOString(),
+      level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
+      service: service || ['payment', 'auth', 'user', 'order'][Math.floor(Math.random() * 4)],
+      message: `Sample log message ${i} after target time`
+    });
+  }
+
+  return {
+    results,
+    executionTime: 0.1,
+    total: results.length,
+    querySuccess: true,
+    error: null
+  };
 };
 
 // Get mock results for when Elasticsearch is not available

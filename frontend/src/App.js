@@ -5,20 +5,20 @@ import Dashboard from './pages/Dashboard';
 import QueryHistory from './pages/QueryHistory';
 import SavedQueries from './pages/SavedQueries';
 import Settings from './pages/Settings';
+import LogContext from './pages/LogContext';
 
-function App() {
+const App = () => {
   return (
-    <div className="flex h-screen w-full">
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/history" element={<QueryHistory />} />
-          <Route path="/saved" element={<SavedQueries />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </div>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="query-history" element={<QueryHistory />} />
+        <Route path="saved-queries" element={<SavedQueries />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="log-context/:id" element={<LogContext />} />
+      </Route>
+    </Routes>
   );
-}
+};
 
 export default App;

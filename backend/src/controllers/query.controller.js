@@ -29,12 +29,10 @@ async function refreshIndicesFieldsCache() {
 
 // Execute a natural language query
 exports.executeQuery = async (req, res) => {
-  console.log("in executeQuery\n");
   try {
     const { query, translatedQuery } = req.body;
-    console.log("in executeQuery body "+ JSON.stringify(query));
+    
     if (!query) {
-      console.log("query is empty")
       return res.status(400).json({ message: 'Query text is required' });
     }
 
@@ -64,18 +62,10 @@ exports.executeQuery = async (req, res) => {
 
     // If no translated query or parsing failed, use normal translation process
     if (!dslQuery) {
-      // Get cached indices fields
       const indicesFields = await getCachedIndicesFields();
-      
-      // Translate natural language query to Elasticsearch DSL using QueryTranslationService
-      // Pass indices fields as extra data
-      console.log("in executeQuery indicesFields: " + JSON.stringify(indicesFields));
       var translationResult = await QueryTranslationService.translateQuery(query, { indicesFields });
       dslQuery = translationResult["elasticsearchQuery"];
-
-      console.log("the elasticsearch query: " + JSON.stringify(dslQuery));
       
-      // Execute the query
       var response = await elasticsearchService.executeQuery(dslQuery);
       results = response.results;
       executionTime = response.executionTime;
@@ -84,7 +74,6 @@ exports.executeQuery = async (req, res) => {
       error = response.error;
 
       if (!querySuccess) {
-        console.log("query failed trying to fix it");
         translationResult = await QueryTranslationService.FixQuery(dslQuery, indicesFields, error);
         dslQuery = translationResult["elasticsearchQuery"];
         response = await elasticsearchService.executeQuery(dslQuery);
@@ -102,22 +91,20 @@ exports.executeQuery = async (req, res) => {
       results,
       executionTime,
       total,
-      translationSource: res.source // indicate if CrewAI or original LLM was used
+      translationSource: res.source
     };
-
-    console.log(JSON.stringify(qresult));
     
     res.json(qresult);
   } catch (error) {
-    console.log("got error !!! =" + error.message);
+    console.error('Error executing query:', error);
     res.status(500).json({ message: 'Error executing query', error: error.message });
   }
 };
 
-// Get query history for current user
+// Get query history
 exports.getQueryHistory = async (req, res) => {
   try {
-    const queries = await Query.find({ user: req.user._id })
+    const queries = await Query.find()
       .sort({ timestamp: -1 })
       .limit(20);
     
@@ -179,5 +166,23 @@ exports.deleteSavedQuery = async (req, res) => {
     res.json({ message: 'Saved query deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting saved query', error: error.message });
+  }
+};
+
+// Get context logs around a specific timestamp
+exports.getLogContext = async (req, res) => {
+  try {
+    const { timestamp, service, limit = 5 } = req.body;
+
+    if (!timestamp) {
+      return res.status(400).json({ message: 'Timestamp is required' });
+    }
+
+    const response = await elasticsearchService.getLogContext(timestamp, service, limit);
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching log context:', error);
+    res.status(500).json({ message: 'Error fetching log context', error: error.message });
   }
 };

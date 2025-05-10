@@ -7,9 +7,7 @@ const fs = require('fs');
 const config = require('./config/config');
 
 // Import routes
-const authRoutes = require('./routes/auth.routes');
 const queryRoutes = require('./routes/query.routes');
-const userRoutes = require('./routes/user.routes');
 
 // Import middleware
 const { apiLimiter } = require('./middleware/rateLimit.middleware');
@@ -34,9 +32,7 @@ mongoose.connect(config.mongoURI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/query', queryRoutes);
-app.use('/api/users', userRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {

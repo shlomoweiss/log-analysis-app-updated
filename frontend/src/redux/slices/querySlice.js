@@ -1,225 +1,219 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-
-// Async thunk for executing a query
-export const executeQuery = createAsyncThunk(
-  'query/execute',
-  async (queryText, { rejectWithValue }) => {
-    try {
-      // Make actual API call to the backend
-      const response = await fetch('/api/query/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: queryText }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}: Failed to execute query`);
-      }
-      
-      const data = await response.json();
-      
-      return {
-        query: queryText,
-        ...data
-      };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// Async thunk for executing a previously translated query
-export const executeTranslatedQuery = createAsyncThunk(
-  'query/executeTranslated',
-  async ({ queryText, translatedQuery }, { rejectWithValue }) => {
-    try {
-      // Make API call to execute the translated query directly
-      const response = await fetch('/api/query/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          query: queryText,
-          translatedQuery: translatedQuery // Send the pre-translated query
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}: Failed to execute query`);
-      }
-      
-      const data = await response.json();
-      
-      return {
-        query: queryText,
-        ...data
-      };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// Async thunk for saving a query
-export const saveQuery = createAsyncThunk(
-  'query/save',
-  async ({ queryText, name, translatedQuery, total }, { rejectWithValue }) => {
-    try {
-      console.log('Saving query:', queryText, name);
-      // Make actual API call to the backend save endpoint
-      const response = await fetch('/api/query/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: queryText,
-          name: name,
-          translatedQuery: translatedQuery,
-          total: total
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}: Failed to save query`);
-      }
-      
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// Async thunk for fetching saved queries
-export const fetchSavedQueries = createAsyncThunk(
-  'query/fetchSaved',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await fetch('/api/query/saved', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}: Failed to fetch saved queries`);
-      }
-      
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   currentQuery: '',
-  results: [],
   translatedQuery: '',
-  executionTime: 0,
-  history: [],
-  savedQueries: [],
   loading: false,
-  error: null
+  error: null,
+  results: [],
+  executionTime: 0,
+  selectedLog: null,
+  contextResults: [],
+  contextLoading: false,
+  contextError: null,
+  savedQueries: []
 };
 
-const querySlice = createSlice({
+export const querySlice = createSlice({
   name: 'query',
   initialState,
   reducers: {
     setCurrentQuery: (state, action) => {
       state.currentQuery = action.payload;
     },
+    setLoading: (state, action) => {
+      state.loading = action.payload;
+    },
+    setError: (state, action) => {
+      state.error = action.payload;
+    },
+    setResults: (state, action) => {
+      state.results = action.payload;
+    },
     setTranslatedQuery: (state, action) => {
       state.translatedQuery = action.payload;
     },
+    setExecutionTime: (state, action) => {
+      state.executionTime = action.payload;
+    },
     clearResults: (state) => {
-      console.log('Clearing results');
       state.results = [];
       state.translatedQuery = '';
       state.executionTime = 0;
+      state.selectedLog = null;
+      state.contextResults = [];
     },
-    clearError: (state) => {
-      state.error = null;
+    setSelectedLog: (state, action) => {
+      state.selectedLog = action.payload;
+    },
+    setContextResults: (state, action) => {
+      state.contextResults = action.payload;
+    },
+    setContextLoading: (state, action) => {
+      state.contextLoading = action.payload;
+    },
+    setContextError: (state, action) => {
+      state.contextError = action.payload;
+    },
+    setSavedQueries: (state, action) => {
+      state.savedQueries = action.payload;
     }
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(executeQuery.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(executeQuery.fulfilled, (state, action) => {
-        state.loading = false;
-        state.results = action.payload.results;
-        state.translatedQuery = action.payload.translatedQuery;
-        state.executionTime = action.payload.executionTime;
-        state.history = [
-          {
-            id: Date.now(),
-            query: action.payload.query,
-            timestamp: new Date().toISOString(),
-            resultCount: action.payload.results.length
-          },
-          ...state.history
-        ].slice(0, 20); // Keep only the last 20 queries
-      })
-      .addCase(executeQuery.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(executeTranslatedQuery.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(executeTranslatedQuery.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentQuery = action.payload.query;
-        state.results = action.payload.results;
-        state.translatedQuery = action.payload.translatedQuery;
-        state.executionTime = action.payload.executionTime;
-        state.history = [
-          {
-            id: Date.now(),
-            query: action.payload.query,
-            timestamp: new Date().toISOString(),
-            resultCount: action.payload.results.length
-          },
-          ...state.history
-        ].slice(0, 20);
-      })
-      .addCase(executeTranslatedQuery.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(saveQuery.fulfilled, (state, action) => {
-        state.savedQueries = [action.payload, ...state.savedQueries];
-      })
-      .addCase(fetchSavedQueries.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchSavedQueries.fulfilled, (state, action) => {
-        state.loading = false;
-        state.savedQueries = action.payload;
-      })
-      .addCase(fetchSavedQueries.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
   }
 });
 
-export const { setCurrentQuery, setTranslatedQuery, clearResults, clearError } = querySlice.actions;
+export const {
+  setCurrentQuery,
+  setLoading,
+  setError,
+  setResults,
+  setTranslatedQuery,
+  setExecutionTime,
+  clearResults,
+  setSelectedLog,
+  setContextResults,
+  setContextLoading,
+  setContextError,
+  setSavedQueries
+} = querySlice.actions;
+
+// Async action to execute the query
+export const executeQuery = (query) => async (dispatch) => {
+  dispatch(setLoading(true));
+  dispatch(setError(null));
+  
+  try {
+    const response = await fetch('/api/query/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to execute query');
+    }
+    
+    dispatch(setResults(data.results));
+    dispatch(setTranslatedQuery(data.translatedQuery));
+    dispatch(setExecutionTime(data.executionTime));
+  } catch (error) {
+    dispatch(setError(error.message));
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+// Async action to execute translated query
+export const executeTranslatedQuery = ({ queryText, translatedQuery }) => async (dispatch) => {
+  dispatch(setLoading(true));
+  dispatch(setError(null));
+  
+  try {
+    const response = await fetch('/api/query/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: queryText, translatedQuery }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to execute query');
+    }
+    
+    dispatch(setResults(data.results));
+    dispatch(setTranslatedQuery(translatedQuery));
+    dispatch(setExecutionTime(data.executionTime));
+    dispatch(setCurrentQuery(queryText));
+  } catch (error) {
+    dispatch(setError(error.message));
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+// Async action to fetch saved queries
+export const fetchSavedQueries = () => async (dispatch) => {
+  dispatch(setLoading(true));
+  
+  try {
+    const response = await fetch('/api/query/saved');
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch saved queries');
+    }
+    
+    // Add the savedQueries to state
+    dispatch(setSavedQueries(data));
+  } catch (error) {
+    dispatch(setError(error.message));
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+// Async action to save query
+export const saveQuery = (queryData) => async (dispatch) => {
+  try {
+    const response = await fetch('/api/query/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(queryData),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to save query');
+    }
+    
+    // Refresh saved queries list
+    dispatch(fetchSavedQueries());
+  } catch (error) {
+    dispatch(setError(error.message));
+  }
+};
+
+// Async action to fetch log context
+export const fetchLogContext = (timestamp) => async (dispatch, getState) => {
+  dispatch(setContextLoading(true));
+  dispatch(setContextError(null));
+  
+  try {
+    const { selectedLog } = getState().query;
+    
+    const response = await fetch('/api/query/context', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        timestamp,
+        service: selectedLog?.service,
+        limit: 5
+      }),
+    });
+    
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || 'Failed to fetch log context');
+    }
+    
+    const data = await response.json();
+    dispatch(setContextResults(data.results));
+  } catch (error) {
+    dispatch(setContextError(error.message));
+  } finally {
+    dispatch(setContextLoading(false));
+  }
+};
+
 export default querySlice.reducer;
