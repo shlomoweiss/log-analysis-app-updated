@@ -112,20 +112,17 @@ exports.getQueryHistory = async (req, res) => {
 // Save a query
 exports.saveQuery = async (req, res) => {
   try {
-    const { name, query } = req.body;
+    const { name, query, translatedQuery, total } = req.body;
     
-    if (!name || !query) {
-      return res.status(400).json({ message: 'Name and query text are required' });
+    if (!name || !query || !translatedQuery) {
+      return res.status(400).json({ message: 'Name, query text, and translated query are required' });
     }
     
-    // Translate query to get DSL representation using LLM service
-    const { dslQueryString } = await llmService.translateQuery(query, req.user._id);
-    
     const savedQuery = new SavedQuery({
-      user: req.user._id,
       name,
       text: query,
-      translatedQuery: dslQueryString
+      translatedQuery,
+      resultCount: total || 0
     });
     
     await savedQuery.save();
@@ -136,10 +133,10 @@ exports.saveQuery = async (req, res) => {
   }
 };
 
-// Get saved queries for current user
+// Get all saved queries
 exports.getSavedQueries = async (req, res) => {
   try {
-    const savedQueries = await SavedQuery.find({ user: req.user._id })
+    const savedQueries = await SavedQuery.find()
       .sort({ createdAt: -1 });
     
     res.json(savedQueries);
@@ -159,38 +156,10 @@ exports.deleteSavedQuery = async (req, res) => {
       return res.status(404).json({ message: 'Saved query not found' });
     }
     
-    // Check if the query belongs to the current user
-    if (savedQuery.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to delete this query' });
-    }
-    
     await SavedQuery.findByIdAndDelete(id);
     
     res.json({ message: 'Saved query deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting saved query', error: error.message });
-  }
-};
-
-// Clear LLM context for current user
-exports.clearContext = async (req, res) => {
-  try {
-    llmService.clearContext(req.user._id);
-    res.json({ message: 'Context cleared successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error clearing context', error: error.message });
-  }
-};
-
-// Refresh indices fields cache
-exports.refreshIndicesFields = async (req, res) => {
-  try {
-    const refreshedFields = await refreshIndicesFieldsCache();
-    res.json({ 
-      message: 'Indices fields cache refreshed successfully',
-      fieldsCount: Object.keys(refreshedFields).length
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error refreshing indices fields cache', error: error.message });
   }
 };

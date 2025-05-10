@@ -37,6 +37,17 @@ exports.validateSavedQuery = [
     .notEmpty().withMessage('Query text is required')
     .isLength({ min: 3, max: 500 }).withMessage('Query must be between 3 and 500 characters')
     .escape(), // Sanitize against XSS
+
+  // Validate translated query
+  body('translatedQuery')
+    .trim()
+    .notEmpty().withMessage('Translated query is required')
+    .escape(), // Sanitize against XSS
+
+  // Validate total (optional)
+  body('total')
+    .optional()
+    .isInt({ min: 0 }).withMessage('Total must be a non-negative integer'),
   
   // Process validation results
   (req, res, next) => {

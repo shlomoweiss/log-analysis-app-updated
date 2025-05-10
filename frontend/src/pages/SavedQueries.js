@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { saveQuery } from '../redux/slices/querySlice';
+import { saveQuery, fetchSavedQueries } from '../redux/slices/querySlice';
 
 const SavedQueries = () => {
   const [queryName, setQueryName] = useState('');
@@ -8,13 +8,21 @@ const SavedQueries = () => {
   const [selectedQuery, setSelectedQuery] = useState(null);
   
   const dispatch = useDispatch();
-  const { currentQuery, savedQueries } = useSelector(state => state.query);
-  console.log('Current query:', currentQuery);
+  const { currentQuery, savedQueries, translatedQuery, results, loading } = useSelector(state => state.query);
+
+  useEffect(() => {
+    dispatch(fetchSavedQueries());
+  }, [dispatch]);
 
   const handleSave = (e) => {
     e.preventDefault();
     if (queryName.trim() && currentQuery.trim()) {
-      dispatch(saveQuery({ queryText: currentQuery, name: queryName }));
+      dispatch(saveQuery({ 
+        queryText: currentQuery, 
+        name: queryName,
+        translatedQuery: translatedQuery || JSON.stringify({}),
+        total: results ? results.length : 0
+      }));
       setQueryName('');
       setShowSaveForm(false);
     }
@@ -34,7 +42,11 @@ const SavedQueries = () => {
       </div>
       
       <div className="mt-6 bg-white shadow rounded-lg p-6 w-full">
-        {savedQueries.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-10">
+            <p className="text-gray-500">Loading saved queries...</p>
+          </div>
+        ) : savedQueries.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-gray-500">No saved queries yet. Save a query to see it here.</p>
           </div>
@@ -47,7 +59,10 @@ const SavedQueries = () => {
                     Name
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Query
+                    Query Text
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Translation
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created At
@@ -59,12 +74,19 @@ const SavedQueries = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {savedQueries.map((query) => (
-                  <tr key={query.id}>
+                  <tr key={query._id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {query.name}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {query.query}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="max-w-xs truncate">
+                        {query.text}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="max-w-xs truncate">
+                        {(query.translatedQuery || '').replace(/&quot;/g, '"')}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(query.createdAt).toLocaleString()}
@@ -142,15 +164,27 @@ const SavedQueries = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
             <h2 className="text-xl font-semibold mb-4">{selectedQuery.name}</h2>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Query Text
-              </label>
-              <div className="bg-gray-100 p-3 rounded">
-                {selectedQuery.query}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Query Text
+                </label>
+                <div className="bg-gray-100 p-3 rounded">
+                  {selectedQuery.text}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Query Translation
+                </label>
+                <div className="bg-gray-100 p-3 rounded overflow-auto max-h-48">
+                  <pre className="whitespace-pre-wrap">
+                    {(selectedQuery.translatedQuery || '').replace(/&quot;/g, '"')}
+                  </pre>
+                </div>
               </div>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end mt-4">
               <button
                 onClick={() => setSelectedQuery(null)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"

@@ -23,7 +23,6 @@ router.get('/saved', queryController.getSavedQueries);
 // Delete a saved query
 router.delete('/saved/:id', queryController.deleteSavedQuery);
 
-// Clear LLM context for current user
-router.post('/clear-context', queryController.clearContext);
+
 
 module.exports = router;

@@ -34,7 +34,7 @@ export const executeQuery = createAsyncThunk(
 // Async thunk for saving a query
 export const saveQuery = createAsyncThunk(
   'query/save',
-  async ({ queryText, name }, { rejectWithValue }) => {
+  async ({ queryText, name, translatedQuery, total }, { rejectWithValue }) => {
     try {
       console.log('Saving query:', queryText, name);
       // Make actual API call to the backend save endpoint
@@ -45,13 +45,40 @@ export const saveQuery = createAsyncThunk(
         },
         body: JSON.stringify({
           query: queryText,
-          name: name
+          name: name,
+          translatedQuery: translatedQuery,
+          total: total
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || `Error ${response.status}: Failed to save query`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Async thunk for fetching saved queries
+export const fetchSavedQueries = createAsyncThunk(
+  'query/fetchSaved',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch('/api/query/saved', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Error ${response.status}: Failed to fetch saved queries`);
       }
       
       const data = await response.json();
@@ -117,6 +144,18 @@ const querySlice = createSlice({
       })
       .addCase(saveQuery.fulfilled, (state, action) => {
         state.savedQueries = [action.payload, ...state.savedQueries];
+      })
+      .addCase(fetchSavedQueries.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSavedQueries.fulfilled, (state, action) => {
+        state.loading = false;
+        state.savedQueries = action.payload;
+      })
+      .addCase(fetchSavedQueries.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   }
 });
