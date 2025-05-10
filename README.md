@@ -9,13 +9,8 @@ A natural language interface for querying Elasticsearch logs, leveraging LLM tec
 - **Timeline Visualization**: See your log events on an interactive timeline
 - **Query History**: Track and reuse your previous queries
 - **Saved Queries**: Save frequently used queries for quick access
-- **User Authentication**: Secure access with role-based permissions
-- **CrewAI Integration**: Enhanced query translation using specialized AI agents
+- **LLM Integration**: Enhanced query translation using specialized AI agents
 
-## Live Demo
-
-The application is deployed and available at:
-https://ykrrarzt.manus.space
 
 ## Architecture
 
@@ -25,7 +20,7 @@ The application consists of:
 - **Backend**: Node.js/Express RESTful API
 - **Database**: MongoDB for user data, query history, and saved queries
 - **Search Engine**: Elasticsearch for log storage and querying
-- **LLM Integration**: CrewAI framework for natural language processing
+- **LLM Integration**: Langchain framework for natural language processing
 
 ## Getting Started
 
