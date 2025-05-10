@@ -141,6 +141,9 @@ const querySlice = createSlice({
     setCurrentQuery: (state, action) => {
       state.currentQuery = action.payload;
     },
+    setTranslatedQuery: (state, action) => {
+      state.translatedQuery = action.payload;
+    },
     clearResults: (state) => {
       console.log('Clearing results');
       state.results = [];
@@ -218,5 +221,5 @@ const querySlice = createSlice({
   }
 });
 
-export const { setCurrentQuery, clearResults, clearError } = querySlice.actions;
+export const { setCurrentQuery, setTranslatedQuery, clearResults, clearError } = querySlice.actions;
 export default querySlice.reducer;
