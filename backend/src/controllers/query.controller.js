@@ -172,13 +172,17 @@ exports.deleteSavedQuery = async (req, res) => {
 // Get context logs around a specific timestamp
 exports.getLogContext = async (req, res) => {
   try {
-    const { timestamp, service, limit = 5 } = req.body;
+    const { timestamp, service, upperLimit = 5, lowerLimit = 5 } = req.body;
 
     if (!timestamp) {
       return res.status(400).json({ message: 'Timestamp is required' });
     }
 
-    const response = await elasticsearchService.getLogContext(timestamp, service, limit);
+    if (upperLimit < 0 || lowerLimit < 0) {
+      return res.status(400).json({ message: 'Limits must be positive numbers' });
+    }
+
+    const response = await elasticsearchService.getLogContext(timestamp, service, upperLimit, lowerLimit);
 
     res.json(response);
   } catch (error) {

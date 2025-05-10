@@ -183,7 +183,7 @@ export const saveQuery = (queryData) => async (dispatch) => {
 };
 
 // Async action to fetch log context
-export const fetchLogContext = (timestamp) => async (dispatch, getState) => {
+export const fetchLogContext = (timestamp, service, upperLimit = 5, lowerLimit = 5) => async (dispatch, getState) => {
   dispatch(setContextLoading(true));
   dispatch(setContextError(null));
   
@@ -197,8 +197,9 @@ export const fetchLogContext = (timestamp) => async (dispatch, getState) => {
       },
       body: JSON.stringify({ 
         timestamp,
-        service: selectedLog?.service,
-        limit: 5
+        service: service || selectedLog?.service,
+        upperLimit,
+        lowerLimit
       }),
     });
     

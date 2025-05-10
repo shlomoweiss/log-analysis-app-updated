@@ -59,14 +59,15 @@ exports.executeQuery = async (dslQuery, index = 'logs-*') => {
 };
 
 // Get context logs around a specific timestamp
-exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'logs-*') => {
+exports.getLogContext = async (timestamp, service = null, upperLimit = 5, lowerLimit = 5, index = 'logs-*') => {
   try {
     const health = await this.checkConnection();
     
     if (!health.connected) {
-      return this.getMockContextResults(timestamp, service, limit);
+      return this.getMockContextResults(timestamp, service, Math.max(upperLimit, lowerLimit));
     }
-    console.log("ES getLogContext index name: " + index + " timestamp: " + timestamp + " service: " + service + " limit: " + limit);
+    console.log("ES getLogContext index name: " + index + " timestamp: " + timestamp + 
+                " service: " + service + " upperLimit: " + upperLimit + " lowerLimit: " + lowerLimit);
 
     const startTime = Date.now();
     
@@ -76,7 +77,6 @@ exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'lo
 
     // Build base query parts that will be common to both queries
     const baseQuery = {
-      size: limit,
       query: {
         bool: {
           must: []
@@ -94,7 +94,8 @@ exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'lo
     // Query for logs before the target timestamp
     const beforeQuery = {
       ...baseQuery,
-      sort: [{ "@timestamp": 'desc' }], // Sort descending to get most recent first
+      size: lowerLimit,
+      sort: [{ "@timestamp": 'desc' }],
       query: {
         bool: {
           must: [
@@ -114,7 +115,8 @@ exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'lo
     // Query for logs after the target timestamp
     const afterQuery = {
       ...baseQuery,
-      sort: [{ "@timestamp": 'asc' }], // Sort ascending to get earliest first
+      size: upperLimit,
+      sort: [{ "@timestamp": 'asc' }],
       query: {
         bool: {
           must: [
@@ -183,7 +185,7 @@ exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'lo
 
     // Combine results in the correct order
     const contextResults = [
-      ...beforeResults.reverse(), // Reverse to get chronological order
+      ...beforeResults.reverse(),
       ...exactResults,
       ...afterResults
     ];
@@ -197,17 +199,17 @@ exports.getLogContext = async (timestamp, service = null, limit = 5, index = 'lo
     };
   } catch (error) {
     console.error('Error fetching log context:', error);
-    return this.getMockContextResults(timestamp, service, limit);
+    return this.getMockContextResults(timestamp, service, Math.max(upperLimit, lowerLimit));
   }
 };
 
 // Get mock context results
-exports.getMockContextResults = (timestamp, service = null, limit = 5) => {
+exports.getMockContextResults = (timestamp, service = null, upperLimit = 5, lowerLimit = 5) => {
   const results = [];
   const targetTime = new Date(timestamp).getTime();
   
   // Generate mock logs before target time
-  for (let i = limit; i > 0; i--) {
+  for (let i = lowerLimit; i > 0; i--) {
     results.push({
       timestamp: new Date(targetTime - 1000 * 60 * i).toISOString(),
       level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
@@ -225,7 +227,7 @@ exports.getMockContextResults = (timestamp, service = null, limit = 5) => {
   });
 
   // Generate mock logs after target time
-  for (let i = 1; i <= limit; i++) {
+  for (let i = 1; i <= upperLimit; i++) {
     results.push({
       timestamp: new Date(targetTime + 1000 * 60 * i).toISOString(),
       level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],

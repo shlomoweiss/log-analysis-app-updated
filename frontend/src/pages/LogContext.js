@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchLogContext } from '../redux/slices/querySlice';
@@ -8,6 +8,8 @@ const LogContext = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { id } = useParams();
+  const [upperLimit, setUpperLimit] = useState(5);
+  const [lowerLimit, setLowerLimit] = useState(5);
   const { 
     contextResults, 
     selectedLog,
@@ -21,10 +23,25 @@ const LogContext = () => {
     if (id && !selectedLog && results.length > 0) {
       const recoveredLog = results[parseInt(id)];
       if (recoveredLog) {
-        dispatch(fetchLogContext(recoveredLog.timestamp));
+        dispatch(fetchLogContext(recoveredLog.timestamp, undefined, upperLimit, lowerLimit));
       }
     }
-  }, [id, selectedLog, results, dispatch]);
+  }, [id, selectedLog, results, dispatch, upperLimit, lowerLimit]);
+
+  const handleLimitChange = (type, value) => {
+    const numValue = parseInt(value) || 0;
+    if (type === 'upper') {
+      setUpperLimit(numValue);
+      if (selectedLog) {
+        dispatch(fetchLogContext(selectedLog.timestamp, undefined, numValue, lowerLimit));
+      }
+    } else {
+      setLowerLimit(numValue);
+      if (selectedLog) {
+        dispatch(fetchLogContext(selectedLog.timestamp, undefined, upperLimit, numValue));
+      }
+    }
+  };
 
   if (contextLoading) {
     return (
@@ -94,6 +111,37 @@ const LogContext = () => {
       </div>
       
       <div className="mt-6">
+        <div className="flex gap-4 mb-4">
+          <div className="flex items-center">
+            <label htmlFor="upperLimit" className="mr-2 text-sm font-medium text-gray-700">
+              Upper Limit:
+            </label>
+            <input
+              type="number"
+              id="upperLimit"
+              min="1"
+              max="50"
+              value={upperLimit}
+              onChange={(e) => handleLimitChange('upper', e.target.value)}
+              className="w-20 px-2 py-1 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="flex items-center">
+            <label htmlFor="lowerLimit" className="mr-2 text-sm font-medium text-gray-700">
+              Lower Limit:
+            </label>
+            <input
+              type="number"
+              id="lowerLimit"
+              min="1"
+              max="50"
+              value={lowerLimit}
+              onChange={(e) => handleLimitChange('lower', e.target.value)}
+              className="w-20 px-2 py-1 border border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+
         {selectedLog && (
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
             <div className="flex justify-between items-center">
