@@ -84,7 +84,7 @@ exports.executeQuery = async (req, res) => {
         error = response.error;
       }
     }
-
+    console.log("results:"+JSON.stringify(results));
     const qresult = {
       query,
       translatedQuery: JSON.stringify(dslQuery),

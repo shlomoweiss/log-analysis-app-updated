@@ -6,7 +6,8 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-    publicPath: '/'
+    publicPath: '/',
+    assetModuleFilename: 'assets/[hash][ext][query]'
   },
   module: {
     rules: [
@@ -22,21 +23,21 @@ module.exports = {
       },
       {
         test: /\.css$/,
+        exclude: /node_modules/,
         use: [
           'style-loader',
           'css-loader',
-          {
-            loader: 'postcss-loader',
-            options: {
-              postcssOptions: {
-                plugins: [
-                  require('tailwindcss'),
-                  require('autoprefixer')
-                ]
-              }
-            }
-          }
+          'postcss-loader'
         ]
+      },
+      {
+        test: /\.css$/,
+        include: /node_modules/,
+        use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource'
       }
     ]
   },
