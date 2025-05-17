@@ -11,7 +11,9 @@ const initialState = {
   contextResults: [],
   contextLoading: false,
   contextError: null,
-  savedQueries: []
+  savedQueries: [],
+  aggregations: null,
+  history: []
 };
 
 export const querySlice = createSlice({
@@ -29,6 +31,15 @@ export const querySlice = createSlice({
     },
     setResults: (state, action) => {
       state.results = action.payload;
+      // Add to history when results are set
+      if (state.currentQuery) {
+        state.history.unshift({
+          id: Date.now().toString(),
+          query: state.currentQuery,
+          timestamp: new Date().toISOString(),
+          resultCount: action.payload.length
+        });
+      }
     },
     setTranslatedQuery: (state, action) => {
       state.translatedQuery = action.payload;
@@ -57,6 +68,9 @@ export const querySlice = createSlice({
     },
     setSavedQueries: (state, action) => {
       state.savedQueries = action.payload;
+    },
+    setAggregations: (state, action) => {
+      state.aggregations = action.payload;
     }
   }
 });
@@ -73,7 +87,8 @@ export const {
   setContextResults,
   setContextLoading,
   setContextError,
-  setSavedQueries
+  setSavedQueries,
+  setAggregations
 } = querySlice.actions;
 
 // Async action to execute the query
@@ -91,6 +106,7 @@ export const executeQuery = (query) => async (dispatch) => {
     });
     
     const data = await response.json();
+    console.log('Raw API response(execute query):', data);
     
     if (!response.ok) {
       throw new Error(data.message || 'Failed to execute query');
@@ -99,6 +115,7 @@ export const executeQuery = (query) => async (dispatch) => {
     dispatch(setResults(data.results));
     dispatch(setTranslatedQuery(data.translatedQuery));
     dispatch(setExecutionTime(data.executionTime));
+    dispatch(setAggregations(data.aggregations));
   } catch (error) {
     dispatch(setError(error.message));
   } finally {
@@ -107,11 +124,13 @@ export const executeQuery = (query) => async (dispatch) => {
 };
 
 // Async action to execute translated query
-export const executeTranslatedQuery = ({ queryText, translatedQuery }) => async (dispatch) => {
+export const executeTranslatedQuery = ({ queryText, translatedQuery }) => async (dispatch, getState) => {
   dispatch(setLoading(true));
   dispatch(setError(null));
   
   try {
+    console.log('Executing translated query:', { queryText, translatedQuery });
+    
     const response = await fetch('/api/query/execute', {
       method: 'POST',
       headers: {
@@ -121,16 +140,28 @@ export const executeTranslatedQuery = ({ queryText, translatedQuery }) => async 
     });
     
     const data = await response.json();
+    console.log('Raw API response(execute translated query):', data);
     
     if (!response.ok) {
       throw new Error(data.message || 'Failed to execute query');
     }
     
+    console.log('Query response aggregations:', data.aggregations);
+    
     dispatch(setResults(data.results));
     dispatch(setTranslatedQuery(translatedQuery));
     dispatch(setExecutionTime(data.executionTime));
     dispatch(setCurrentQuery(queryText));
+    dispatch(setAggregations(data.aggregations));
+    
+    // Log state after updates
+    const updatedState = getState();
+    console.log('Redux state after updates:', {
+      results: updatedState.query.results,
+      aggregations: updatedState.query.aggregations
+    });
   } catch (error) {
+    console.error('Error executing translated query:', error);
     dispatch(setError(error.message));
   } finally {
     dispatch(setLoading(false));

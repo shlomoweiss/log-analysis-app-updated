@@ -117,7 +117,7 @@ Review and optimize the query for:
 2. Accuracy (ensure it matches the user's intent and available fields)
 3. Completeness (include all relevant filters)
 4. Best practices (follow Elasticsearch query best practices)
-5. set size filed to 10000
+5. if it aggregations query set query size to 0 
 6. make sure @timestamp is one on return fields
 7. very importent!!! do not remove any fields from the given Elasticsearch query result, the optimization should not change the given query result or try to reduce the amount of data the query return
 

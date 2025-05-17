@@ -41,6 +41,7 @@ exports.executeQuery = async (req, res) => {
     let total = 0;
     let querySuccess = false;
     let error = null;
+    let aggregations = null;
     let dslQuery;
 
     // If we have a pre-translated query, use it directly
@@ -53,6 +54,7 @@ exports.executeQuery = async (req, res) => {
         total = response.total;
         querySuccess = response.querySuccess;
         error = response.error;
+        aggregations = response.aggregations;
       } catch (parseError) {
         console.error('Error parsing translated query:', parseError);
         // If parsing fails, fall back to normal translation
@@ -72,6 +74,7 @@ exports.executeQuery = async (req, res) => {
       total = response.total;
       querySuccess = response.querySuccess;
       error = response.error;
+      aggregations = response.aggregations;
 
       if (!querySuccess) {
         translationResult = await QueryTranslationService.FixQuery(dslQuery, indicesFields, error);
@@ -82,6 +85,7 @@ exports.executeQuery = async (req, res) => {
         total = response.total;
         querySuccess = response.querySuccess;
         error = response.error;
+        aggregations = response.aggregations;
       }
     }
     console.log("results:"+JSON.stringify(results));
@@ -91,7 +95,8 @@ exports.executeQuery = async (req, res) => {
       results,
       executionTime,
       total,
-      translationSource: res.source
+      translationSource: res.source,
+      aggregations
     };
     
     res.json(qresult);
