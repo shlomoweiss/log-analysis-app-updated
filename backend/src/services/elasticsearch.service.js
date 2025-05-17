@@ -38,6 +38,18 @@ exports.executeQuery = async (dslQuery, index = 'logs-*') => {
     
     const endTime = Date.now();
     const executionTime = (endTime - startTime) / 1000;
+
+    if (response._shards.failed>0){
+      console.log("ES query failed")
+      return {
+        results: [],
+        executionTime,
+        total: 0,
+        querySuccess: false,
+        error: response._shards.failures[0].reason.reason,
+        aggregations: null
+      };
+    }
     
     const results = response.hits.hits.map(hit => ({
       ...hit._source,

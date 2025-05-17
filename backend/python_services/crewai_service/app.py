@@ -117,7 +117,7 @@ Review and optimize the query for:
 2. Accuracy (ensure it matches the user's intent and available fields)
 3. Completeness (include all relevant filters)
 4. Best practices (follow Elasticsearch query best practices)
-5. if it aggregations query set query size to 0 
+5. if it aggregations query set query size to 0 else set query size to 10000
 6. make sure @timestamp is one on return fields
 7. very importent!!! do not remove any fields from the given Elasticsearch query result, the optimization should not change the given query result or try to reduce the amount of data the query return
 
@@ -178,6 +178,7 @@ def extract_json_from_string(input_string):
     
     try:
         json_str = json_str.replace('\\n', '')
+        json_str = json_str.replace("\'", "\"")
         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"+json_str)
         # Parse the JSON string into a Python dictionary
         json_obj = json.loads(json_str)
